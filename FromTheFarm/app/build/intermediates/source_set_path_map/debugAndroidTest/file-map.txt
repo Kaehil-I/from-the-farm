@@ -1,0 +1,4 @@
+com.fromthefarm.app.test.app-androidTest-0 C:\Users\emeris\Documents\GitHub\PROG7314\from-the-farm\FromTheFarm\app\build\generated\res\resValues\androidTest\debug
+com.fromthefarm.app.test.app-mergeDebugAndroidTestResources-1 C:\Users\emeris\Documents\GitHub\PROG7314\from-the-farm\FromTheFarm\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
+com.fromthefarm.app.test.app-mergeDebugAndroidTestResources-2 C:\Users\emeris\Documents\GitHub\PROG7314\from-the-farm\FromTheFarm\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
+com.fromthefarm.app.test.app-merged_res-3 C:\Users\emeris\Documents\GitHub\PROG7314\from-the-farm\FromTheFarm\app\build\intermediates\merged_res\debugAndroidTest
