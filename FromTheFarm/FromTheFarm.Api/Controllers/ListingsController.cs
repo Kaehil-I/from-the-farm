@@ -87,10 +87,19 @@ public class ListingsController : ControllerBase
             Unit = request.Unit,
             HarvestDate = request.HarvestDate,
             Location = request.Location,
-            // TODO (Part 3, Azure Blob Storage task): swap this for an upload
-            // to Blob Storage and store the resulting URL instead of a
-            // base64 blob directly on the document.
-            PhotoUrl = null
+            // Gap identified during Zario's review: this previously discarded
+            // photoBase64 entirely, silently breaking the photo feature.
+            // Stopgap for Part 2: store it as a data: URI directly on the
+            // document so photos actually round-trip and render in the app.
+            // This is NOT the final design — Part 3's dedicated Azure Blob
+            // Storage task (Gantt Week 10) replaces this with a real upload
+            // and swaps PhotoUrl to a Blob Storage URL. Flagging now so this
+            // doesn't look like an oversight when that task starts: Cosmos
+            // documents cap at 2MB, so this only holds up for small/
+            // compressed images — fine for a prototype, not for production.
+            PhotoUrl = string.IsNullOrEmpty(request.PhotoBase64)
+                ? null
+                : $"data:image/jpeg;base64,{request.PhotoBase64}"
         };
 
         var created = await _listings.UpsertAsync(listing, uid);

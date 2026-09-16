@@ -65,4 +65,7 @@ public class MatchDocument
 
     [JsonPropertyName("confirmedAt")]
     public DateTime? ConfirmedAt { get; set; }
+
+    [JsonPropertyName("completedAt")]
+    public DateTime? CompletedAt { get; set; }
 }

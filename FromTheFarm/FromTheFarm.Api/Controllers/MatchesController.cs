@@ -119,8 +119,42 @@ public class MatchesController : ControllerBase
             return NotFound();
         }
 
+        if (match.Status != "Suggested")
+        {
+            return BadRequest($"Match must be in 'Suggested' status to confirm — current status is '{match.Status}'.");
+        }
+
         match.Status = "Confirmed";
         match.ConfirmedAt = DateTime.UtcNow;
+        await _matches.UpsertAsync(match, matchId);
+
+        return NoContent();
+    }
+
+    // Gap identified during Zario's review: Section 5 describes a
+    // Confirmed → Completed transition (ratings can only be submitted once
+    // "Completed"), but no endpoint actually performed that transition —
+    // there was no way for a match to ever reach "Completed" at all. Either
+    // party marks the exchange as done once it's actually happened in
+    // person; this is what unblocks POST /matches/{matchId}/rating.
+    [HttpPost("{matchId}/complete")]
+    public async Task<IActionResult> CompleteMatch(string matchId)
+    {
+        var uid = User.GetFirebaseUid();
+        var match = await _matches.GetByIdAsync(matchId, matchId);
+
+        if (match is null || (match.FarmerId != uid && match.BuyerId != uid))
+        {
+            return NotFound();
+        }
+
+        if (match.Status != "Confirmed")
+        {
+            return BadRequest($"Match must be in 'Confirmed' status to complete — current status is '{match.Status}'.");
+        }
+
+        match.Status = "Completed";
+        match.CompletedAt = DateTime.UtcNow;
         await _matches.UpsertAsync(match, matchId);
 
         return NoContent();
