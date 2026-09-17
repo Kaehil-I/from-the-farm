@@ -96,3 +96,5 @@ Enable biometric unlock through the profile-pending screen or the separate devic
 Biometric prompt/enrollment and lifecycle behavior still need the manual emulator checks; unit tests simulate the successful OS callback and access-gate state.
 
 Final verification (17 September 2026): assembleDebug, testDebugUnitTest and lintDebug succeeded against an identical copy of the final app source. All 25 unit tests passed. The build used an isolated verification signing key; use Android Studio with your own configured key for Firebase emulator testing. The operating-system biometric prompt and live Vercel/database flow still require manual acceptance testing.
+
+Integration layout: Open FromTheFarm/android in Android Studio. Android app, Gradle wrapper and local.properties now live there. The backend remains in FromTheFarm/FromTheFarm.Api. Earlier Android setup paths are relative to this relocated root. Generated build files, caches, IDE settings and local.properties remain excluded from Git tracking.
