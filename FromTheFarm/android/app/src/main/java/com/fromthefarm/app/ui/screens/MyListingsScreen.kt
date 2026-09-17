@@ -14,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.fromthefarm.app.data.Listing
+import com.fromthefarm.app.data.PreviewListing
 import com.fromthefarm.app.data.SampleData
 import com.fromthefarm.app.ui.theme.*
 
@@ -34,7 +34,7 @@ fun MyListingsScreen(onAddListing: () -> Unit = {}, onOpenListing: (String) -> U
                 contentAlignment = Alignment.Center
             ) {
                 IconButton(onClick = onAddListing) {
-                    Icon(Icons.Filled.Add, contentDescription = "Add listing", tint = FarmGreenContainer)
+                    Icon(Icons.Filled.Add, contentDescription = "Add PreviewListing", tint = FarmGreenContainer)
                 }
             }
         }
@@ -42,16 +42,16 @@ fun MyListingsScreen(onAddListing: () -> Unit = {}, onOpenListing: (String) -> U
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(SampleData.myListings) { listing ->
-                ListingRow(listing, onClick = { onOpenListing(listing.id) })
+            items(SampleData.myListings) { PreviewListing ->
+                ListingRow(PreviewListing, onClick = { onOpenListing(PreviewListing.id) })
             }
         }
     }
 }
 
 @Composable
-private fun ListingRow(listing: Listing, onClick: () -> Unit) {
-    val (bg, fg) = when (listing.status) {
+private fun ListingRow(PreviewListing: PreviewListing, onClick: () -> Unit) {
+    val (bg, fg) = when (PreviewListing.status) {
         "Matched" -> FarmGreenContainer to FarmGreenDark
         "Active" -> FarmAmberContainer to FarmAmber
         else -> FarmBorder to FarmTextSecondary
@@ -68,14 +68,14 @@ private fun ListingRow(listing: Listing, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("${listing.cropName} · ${listing.quantityKg}kg", style = MaterialTheme.typography.bodyMedium, color = FarmTextPrimary)
+                Text("${PreviewListing.cropName} · ${PreviewListing.quantityKg}kg", style = MaterialTheme.typography.bodyMedium, color = FarmTextPrimary)
                 Box(
                     modifier = Modifier.background(bg, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
-                    Text(listing.status, style = MaterialTheme.typography.labelSmall, color = fg)
+                    Text(PreviewListing.status, style = MaterialTheme.typography.labelSmall, color = fg)
                 }
             }
-            Text("Harvest ${listing.harvestDate}", style = MaterialTheme.typography.bodySmall, color = FarmTextMuted)
+            Text("Harvest ${PreviewListing.harvestDate}", style = MaterialTheme.typography.bodySmall, color = FarmTextMuted)
         }
     }
 }
@@ -85,3 +85,4 @@ private fun ListingRow(listing: Listing, onClick: () -> Unit) {
 private fun MyListingsScreenPreview() {
     FromTheFarmTheme { MyListingsScreen() }
 }
+
