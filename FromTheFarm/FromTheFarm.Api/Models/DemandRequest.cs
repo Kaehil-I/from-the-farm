@@ -1,10 +1,14 @@
 using System.Text.Json.Serialization;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using FromTheFarm.Api.Services;
 
 namespace FromTheFarm.Api.Models;
 
-// Cosmos container: Demands. Partition key: /buyerId
-public class DemandRequest
+// Mongo collection: Demands
+public class DemandRequest : IDocument
 {
+    [BsonId]
     [JsonPropertyName("id")]
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
@@ -18,6 +22,7 @@ public class DemandRequest
     public string CropType { get; set; } = string.Empty;
 
     [JsonPropertyName("quantityNeeded")]
+    [BsonRepresentation(BsonType.Decimal128)]
     public decimal QuantityNeeded { get; set; }
 
     [JsonPropertyName("unit")]

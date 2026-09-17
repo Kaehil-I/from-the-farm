@@ -2,6 +2,8 @@ using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace FromTheFarm.Api.Controllers;
 
@@ -10,9 +12,9 @@ namespace FromTheFarm.Api.Controllers;
 [Authorize]
 public class UsersController : ControllerBase
 {
-    private readonly CosmosRepository<UserProfile> _users;
+    private readonly MongoRepository<UserProfile> _users;
 
-    public UsersController(CosmosRepository<UserProfile> users)
+    public UsersController(MongoRepository<UserProfile> users)
     {
         _users = users;
     }
@@ -29,7 +31,7 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<UserProfile>> GetMyProfile()
     {
         var uid = User.GetFirebaseUid();
-        var profile = await _users.GetByIdAsync(uid, uid);
+        var profile = await _users.GetByIdAsync(uid);
 
         return profile is null ? NotFound() : Ok(profile);
     }
@@ -45,7 +47,7 @@ public class UsersController : ControllerBase
         }
 
         var uid = User.GetFirebaseUid();
-        var existing = await _users.GetByIdAsync(uid, uid);
+        var existing = await _users.GetByIdAsync(uid);
         if (existing is null)
         {
             return NotFound("Call POST /auth/session before updating a profile.");
@@ -58,7 +60,7 @@ public class UsersController : ControllerBase
         existing.BiometricLockEnabled = request.BiometricLockEnabled;
         existing.Phone = request.Phone;
 
-        var updated = await _users.UpsertAsync(existing, uid);
+        var updated = await _users.UpsertAsync(existing);
         return Ok(updated);
     }
 }

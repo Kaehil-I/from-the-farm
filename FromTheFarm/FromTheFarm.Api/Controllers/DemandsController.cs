@@ -2,7 +2,8 @@ using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Cosmos.Linq;
+using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace FromTheFarm.Api.Controllers;
 
@@ -11,9 +12,9 @@ namespace FromTheFarm.Api.Controllers;
 [Authorize]
 public class DemandsController : ControllerBase
 {
-    private readonly CosmosRepository<DemandRequest> _demands;
+    private readonly MongoRepository<DemandRequest> _demands;
 
-    public DemandsController(CosmosRepository<DemandRequest> demands)
+    public DemandsController(MongoRepository<DemandRequest> demands)
     {
         _demands = demands;
     }
@@ -32,18 +33,13 @@ public class DemandsController : ControllerBase
         [FromQuery] string? cropType = null)
     {
         var uid = User.GetFirebaseUid();
-        var query = _demands.Container.GetItemLinqQueryable<DemandRequest>()
+        var query = _demands.Collection.AsQueryable()
             .Where(d => d.Status == "Open");
 
         query = mine ? query.Where(d => d.BuyerId == uid) : query;
         query = cropType is not null ? query.Where(d => d.CropType == cropType) : query;
 
-        var results = new List<DemandRequest>();
-        using var iterator = query.ToFeedIterator();
-        while (iterator.HasMoreResults)
-        {
-            results.AddRange(await iterator.ReadNextAsync());
-        }
+        var results = await query.ToListAsync();
 
         return Ok(results);
     }
@@ -68,7 +64,7 @@ public class DemandsController : ControllerBase
             Location = request.Location
         };
 
-        var created = await _demands.UpsertAsync(demand, uid);
+        var created = await _demands.UpsertAsync(demand);
         return CreatedAtAction(nameof(GetDemands), new { }, created);
     }
 
@@ -76,7 +72,7 @@ public class DemandsController : ControllerBase
     public async Task<ActionResult<DemandRequest>> UpdateDemand(string demandId, [FromBody] CreateDemandRequest request)
     {
         var uid = User.GetFirebaseUid();
-        var existing = await _demands.GetByIdAsync(demandId, uid);
+        var existing = await _demands.GetByIdAsync(demandId);
         if (existing is null) return NotFound();
 
         existing.CropType = request.CropType;
@@ -85,7 +81,7 @@ public class DemandsController : ControllerBase
         existing.Deadline = request.Deadline;
         existing.Location = request.Location;
 
-        var updated = await _demands.UpsertAsync(existing, uid);
+        var updated = await _demands.UpsertAsync(existing);
         return Ok(updated);
     }
 
@@ -93,11 +89,11 @@ public class DemandsController : ControllerBase
     public async Task<IActionResult> DeleteDemand(string demandId)
     {
         var uid = User.GetFirebaseUid();
-        var existing = await _demands.GetByIdAsync(demandId, uid);
+        var existing = await _demands.GetByIdAsync(demandId);
         if (existing is null) return NotFound();
 
         existing.Status = "Expired";
-        await _demands.UpsertAsync(existing, uid);
+        await _demands.UpsertAsync(existing);
         return NoContent();
     }
 }
