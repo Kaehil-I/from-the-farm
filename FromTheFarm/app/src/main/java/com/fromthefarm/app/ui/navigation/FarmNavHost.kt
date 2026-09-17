@@ -19,7 +19,6 @@ import com.fromthefarm.app.ui.FarmViewModel
 import com.fromthefarm.app.ui.screens.RecordEditor
 import com.fromthefarm.app.ui.screens.ProfileEditor
 import com.fromthefarm.app.ui.screens.NearbyFilter
-import com.fromthefarm.app.ui.screens.SettingsScreen
 import com.fromthefarm.app.ui.screens.ListingPhoto
 import com.fromthefarm.app.ui.screens.BiometricAction
 import kotlin.math.roundToInt
@@ -188,13 +187,18 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
                         }
                     }
                     "Settings" -> {
+                        ProfileEditor(profile, state.busy, false, vm::saveProfile)
+                        HorizontalDivider()
+                        Text("Device security", style = MaterialTheme.typography.titleMedium)
                         if (!state.biometricEnabled) BiometricAction("Enable biometric unlock on this device", !state.busy, vm::enableBiometrics, vm::biometricError)
                         else {
                             TextButton(enabled = !state.busy, onClick = vm::lock) { Text("Lock app") }
                             TextButton(enabled = !state.busy, onClick = vm::disableBiometrics) { Text("Turn off biometric unlock") }
                         }
-                        Text("Settings preferences are a preview until they are connected to your profile.")
-                        SettingsScreen(onLogout = { if (!state.busy) vm.logout() })
+                        Text("Biometric unlock is enrolled on this device only, so it does not follow your account to another phone.",
+                            style = MaterialTheme.typography.bodySmall)
+                        HorizontalDivider()
+                        TextButton(enabled = !state.busy, onClick = vm::logout) { Text("Sign out") }
                     }
                 }
             }
