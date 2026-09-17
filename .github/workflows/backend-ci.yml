@@ -1,0 +1,38 @@
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - "FromTheFarm/FromTheFarm.Api/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "FromTheFarm/FromTheFarm.Api/**"
+      - ".github/workflows/backend-ci.yml"
+
+jobs:
+  build:
+    name: Build and containerize
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: FromTheFarm/FromTheFarm.Api
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore FromTheFarm.Api.csproj
+
+      - name: Build
+        run: dotnet build FromTheFarm.Api.csproj --no-restore --configuration Release
+
+      - name: Build Docker image
+        run: docker build -t fromthefarm-api:ci .
