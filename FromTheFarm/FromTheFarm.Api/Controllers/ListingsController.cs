@@ -2,8 +2,8 @@ using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Cosmos.Linq;
+using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace FromTheFarm.Api.Controllers;
 
@@ -12,9 +12,9 @@ namespace FromTheFarm.Api.Controllers;
 [Authorize]
 public class ListingsController : ControllerBase
 {
-    private readonly CosmosRepository<Listing> _listings;
+    private readonly MongoRepository<Listing> _listings;
 
-    public ListingsController(CosmosRepository<Listing> listings)
+    public ListingsController(MongoRepository<Listing> listings)
     {
         _listings = listings;
     }
@@ -45,18 +45,13 @@ public class ListingsController : ControllerBase
         [FromQuery] double? longitude = null)
     {
         var uid = User.GetFirebaseUid();
-        var query = _listings.Container.GetItemLinqQueryable<Listing>()
+        var query = _listings.Collection.AsQueryable()
             .Where(l => l.Status == "Active");
 
         query = mine ? query.Where(l => l.FarmerId == uid) : query;
         query = cropType is not null ? query.Where(l => l.CropType == cropType) : query;
 
-        var results = new List<Listing>();
-        using var iterator = query.ToFeedIterator();
-        while (iterator.HasMoreResults)
-        {
-            results.AddRange(await iterator.ReadNextAsync());
-        }
+        var results = await query.ToListAsync();
 
         if (!mine && maxDistanceKm is not null && latitude is not null && longitude is not null)
         {
@@ -91,18 +86,18 @@ public class ListingsController : ControllerBase
             // photoBase64 entirely, silently breaking the photo feature.
             // Stopgap for Part 2: store it as a data: URI directly on the
             // document so photos actually round-trip and render in the app.
-            // This is NOT the final design — Part 3's dedicated Azure Blob
-            // Storage task (Gantt Week 10) replaces this with a real upload
-            // and swaps PhotoUrl to a Blob Storage URL. Flagging now so this
-            // doesn't look like an oversight when that task starts: Cosmos
-            // documents cap at 2MB, so this only holds up for small/
-            // compressed images — fine for a prototype, not for production.
+            // This is NOT the final design — the POE's dedicated object
+            // storage task replaces this with a real upload and swaps PhotoUrl
+            // to a hosted URL. Flagging now so it doesn't look like an
+            // oversight when that task starts: MongoDB documents cap at 16MB,
+            // so this holds for small or compressed images, but it is not how
+            // production should store photos.
             PhotoUrl = string.IsNullOrEmpty(request.PhotoBase64)
                 ? null
                 : $"data:image/jpeg;base64,{request.PhotoBase64}"
         };
 
-        var created = await _listings.UpsertAsync(listing, uid);
+        var created = await _listings.UpsertAsync(listing);
         return CreatedAtAction(nameof(GetListings), new { }, created);
     }
 
@@ -110,7 +105,7 @@ public class ListingsController : ControllerBase
     public async Task<ActionResult<Listing>> UpdateListing(string listingId, [FromBody] CreateListingRequest request)
     {
         var uid = User.GetFirebaseUid();
-        var existing = await _listings.GetByIdAsync(listingId, uid);
+        var existing = await _listings.GetByIdAsync(listingId);
         if (existing is null) return NotFound();
 
         existing.CropType = request.CropType;
@@ -119,7 +114,7 @@ public class ListingsController : ControllerBase
         existing.HarvestDate = request.HarvestDate;
         existing.Location = request.Location;
 
-        var updated = await _listings.UpsertAsync(existing, uid);
+        var updated = await _listings.UpsertAsync(existing);
         return Ok(updated);
     }
 
@@ -127,13 +122,13 @@ public class ListingsController : ControllerBase
     public async Task<IActionResult> DeleteListing(string listingId)
     {
         var uid = User.GetFirebaseUid();
-        var existing = await _listings.GetByIdAsync(listingId, uid);
+        var existing = await _listings.GetByIdAsync(listingId);
         if (existing is null) return NotFound();
 
         // Soft-delete: preserves history for any matches already generated
         // against this listing, per Section 5.
         existing.Status = "Deleted";
-        await _listings.UpsertAsync(existing, uid);
+        await _listings.UpsertAsync(existing);
         return NoContent();
     }
 }

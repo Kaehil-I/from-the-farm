@@ -39,7 +39,7 @@ class FarmRepository(private val context: Context) : FarmDataSource {
         return FirebaseAuth.getInstance()
     }
     override val api: FarmApi by lazy {
-        check(BuildConfig.API_BASE_URL.startsWith("https://")) { "The farm service URL is not configured. Set API_BASE_URL in local.properties to the team's Vercel HTTPS address, then rebuild." }
+        check(BuildConfig.API_BASE_URL.startsWith("https://")) { "The farm service URL is not configured. Set API_BASE_URL in local.properties to the team's deployed HTTPS address, then rebuild." }
         Retrofit.Builder().baseUrl(BuildConfig.API_BASE_URL.trimEnd('/') + "/")
             .client(OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS)
                 .followRedirects(false).retryOnConnectionFailure(false).build())

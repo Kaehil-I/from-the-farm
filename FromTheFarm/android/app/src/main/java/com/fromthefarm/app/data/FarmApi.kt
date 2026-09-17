@@ -2,7 +2,7 @@ package com.fromthefarm.app.data
 
 import retrofit2.http.*
 
-// Preserve this REST contract when the team ports the backend to Vercel/MongoDB.
+// Preserve this REST contract when the backend is deployed.
 data class Location(val latitude: Double, val longitude: Double)
 data class Profile(val userId: String, val displayName: String, val role: String?, val language: String,
     val searchRadiusKm: Int, val notificationsEnabled: Boolean, val biometricLockEnabled: Boolean, val phone: String?)

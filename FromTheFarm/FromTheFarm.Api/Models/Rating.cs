@@ -1,10 +1,14 @@
 using System.Text.Json.Serialization;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using FromTheFarm.Api.Services;
 
 namespace FromTheFarm.Api.Models;
 
-// Cosmos container: Ratings. Partition key: /matchId
-public class Rating
+// Mongo collection: Ratings
+public class Rating : IDocument
 {
+    [BsonId]
     [JsonPropertyName("id")]
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
