@@ -28,53 +28,54 @@ Part 1's UI-only prototype (mock data, no networking) has been replaced end to e
 - Matches move through a fixed lifecycle the app enforces in order: **Suggested** (contact details hidden) → **Confirmed** (contact details unlock) → **Completed** → **Rated**. You can't skip a stage.
 - Optional **biometric unlock** is a local, per-device app-access lock on top of an already-saved Firebase session — not a separate account, and not encrypted credential storage.
 
-## Project structure 
+## Project structure
+
+```
 FromTheFarm.Api/
-├── Program.cs — DI, Mongo client, Firebase JWT bearer auth, Swagger
+├── Program.cs                        — DI, Mongo client, Firebase JWT bearer auth, Swagger
 ├── Controllers/
-│ ├── AuthController.cs — POST auth/session (create-or-fetch profile)
-│ ├── UsersController.cs — GET/PUT users/me (profile + onboarding)
-│ ├── ListingsController.cs — farmer listings CRUD, buyer distance search
-│ ├── DemandsController.cs — buyer demand requests CRUD
-│ ├── MatchesController.cs — scored feed, detail, confirm/complete/rate
-│ └── HealthController.cs — unauthenticated Mongo ping
-├── Models/ — Listing, DemandRequest, MatchDocument, Rating, UserProfile (has OnboardingComplete), GeoLocation
+│   ├── AuthController.cs             — POST auth/session (create-or-fetch profile)
+│   ├── UsersController.cs            — GET/PUT users/me (profile + onboarding)
+│   ├── ListingsController.cs         — farmer listings CRUD, buyer distance search
+│   ├── DemandsController.cs          — buyer demand requests CRUD
+│   ├── MatchesController.cs          — scored feed, detail, confirm/complete/rate
+│   └── HealthController.cs           — unauthenticated Mongo ping
+├── Models/                           — Listing, DemandRequest, MatchDocument, Rating, UserProfile (has OnboardingComplete), GeoLocation
 └── Services/
-├── MatchingService.cs — weighted match scoring + Haversine distance
-├── MongoRepository.cs — generic get/upsert/delete wrapper per collection
-├── ClaimsPrincipalExtensions.cs — Firebase UID from the validated token
-├── DateOnlySerializer.cs — DateOnly <-> "yyyy-MM-dd" BSON string
-└── MongoDbOptions.cs — connection string / database name binding
+    ├── MatchingService.cs            — weighted match scoring + Haversine distance
+    ├── MongoRepository.cs            — generic get/upsert/delete wrapper per collection
+    ├── ClaimsPrincipalExtensions.cs  — Firebase UID from the validated token
+    ├── DateOnlySerializer.cs         — DateOnly <-> "yyyy-MM-dd" BSON string
+    └── MongoDbOptions.cs             — connection string / database name binding
 
 FromTheFarm.Api.Tests/
-├── MatchingServiceTests.cs — 9 tests
-├── DateOnlySerializerTests.cs — 3 tests
+├── MatchingServiceTests.cs           — 9 tests
+├── DateOnlySerializerTests.cs        — 3 tests
 ├── ClaimsPrincipalExtensionsTests.cs — 3 tests
-└── UserProfileTests.cs — 3 tests
+└── UserProfileTests.cs               — 3 tests
 
 android/app/src/main/java/com/fromthefarm/app/
-├── MainActivity.kt — entry point, hosts FarmNavHost
+├── MainActivity.kt                   — entry point, hosts FarmNavHost
 ├── data/
-│ ├── FarmApi.kt — Retrofit interface + REST DTOs (must mirror the API's schema exactly)
-│ ├── FarmRepository.kt — Firebase Google sign-in, ID token, biometric-enabled flag, Retrofit client
-│ ├── FormValidation.kt — shared listing/demand field validation
-│ ├── UserRole.kt — FARMER / BUYER
-│ └── SampleData.kt — retained for the Part 1 preview screens only; live screens never use it
+│   ├── FarmApi.kt                    — Retrofit interface + REST DTOs (must mirror the API's schema exactly)
+│   ├── FarmRepository.kt             — Firebase Google sign-in, ID token, biometric-enabled flag, Retrofit client
+│   ├── FormValidation.kt             — shared listing/demand field validation
+│   ├── UserRole.kt                   — FARMER / BUYER
+│   └── SampleData.kt                 — retained for the Part 1 preview screens only; live screens never use it
 ├── ui/
-│ ├── FarmViewModel.kt — single state holder: session, profile, listings/demands/matches, error mapping
-│ ├── navigation/FarmNavHost.kt — authenticated shell: bottom nav, editors, match detail, biometric lock screen
-│ └── screens/
-│ ├── LiveForms.kt — RecordEditor (listing/demand form), NearbyFilter (buyer search), ProfileEditor (onboarding/settings)
-│ ├── BiometricAction.kt — fingerprint/face prompt button
-│ ├── ListingPhoto.kt — photo loader/downscaler + PhotoTools.prepare()
-│ └── (Part 1 preview screens kept as design references, not wired into the live shell)
+│   ├── FarmViewModel.kt              — single state holder: session, profile, listings/demands/matches, error mapping
+│   ├── navigation/FarmNavHost.kt      — authenticated shell: bottom nav, editors, match detail, biometric lock screen
+│   └── screens/
+│       ├── LiveForms.kt              — RecordEditor (listing/demand form), NearbyFilter (buyer search), ProfileEditor (onboarding/settings)
+│       ├── BiometricAction.kt        — fingerprint/face prompt button
+│       ├── ListingPhoto.kt           — photo loader/downscaler + PhotoTools.prepare()
+│       └── (Part 1 preview screens kept as design references, not wired into the live shell)
 └── src/test/java/com/fromthefarm/app/
-├── data/FarmApiTest.kt — request/response shape against MockWebServer
-├── data/FormValidationTest.kt
-├── ui/FarmViewModelTest.kt — session, error handling, save/delete, match lifecycle
-└── ui/SettingsProfileTest.kt
-
-
+    ├── data/FarmApiTest.kt           — request/response shape against MockWebServer
+    ├── data/FormValidationTest.kt
+    ├── ui/FarmViewModelTest.kt       — session, error handling, save/delete, match lifecycle
+    └── ui/SettingsProfileTest.kt
+```
 ## Testing status
 
 - **Backend**: 18 unit tests across `MatchingServiceTests`, `DateOnlySerializerTests`, `ClaimsPrincipalExtensionsTests`, `UserProfileTests` — this is 100% of the pure, isolated logic in the API. The 6 controllers and `MongoRepository` are not unit tested, because `MongoRepository<T>` is a concrete class rather than an interface, so there's no way to fake it in a test without a small refactor first.
