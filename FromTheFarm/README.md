@@ -81,20 +81,9 @@ android/app/src/main/java/com/fromthefarm/app/
 - **Backend**: 18 unit tests across `MatchingServiceTests`, `DateOnlySerializerTests`, `ClaimsPrincipalExtensionsTests`, `UserProfileTests` — this is 100% of the pure, isolated logic in the API. The 6 controllers and `MongoRepository` are not unit tested, because `MongoRepository<T>` is a concrete class rather than an interface, so there's no way to fake it in a test without a small refactor first.
 - **Android**: 25 unit tests across `FarmApiTest`, `FormValidationTest`, `FarmViewModelTest`, `SettingsProfileTest` — this is 100% of what the current test setup (JUnit + coroutines-test + MockWebServer, no Robolectric) can reach. The Compose screens themselves (`RecordEditor`, `NearbyFilter`, `ProfileEditor`, `BiometricAction`, navigation) and `PhotoTools.prepare()` in `ListingPhoto.kt` all call real Android framework classes and would need either Compose UI tests (run on a device/emulator) or Robolectric to cover.
 
-## Known gaps
-
-- No automated tests on the API's controller layer (see above).
-- No Compose UI/instrumented tests on the Android side (see above).
-- **Photo storage is a stopgap.** `POST /listings` stores an uploaded photo as a base64 `data:` URI directly on the Mongo document (capped by Mongo's 16MB document limit and a 256KB compressed-photo limit client-side) rather than uploading to real object storage. Editing a listing doesn't currently support replacing or removing a previously saved photo.
-- **Matches recompute on every `GET /matches`.** Fine at this project's scale, but a production system would compute matches once at write time (e.g. via a Mongo change stream) instead.
-- **`MatchDocument` self-partitions on `/id`** with a cross-partition filter on `farmerId`/`buyerId`, since a match has two legitimate owners. Simple and correct, but costs more at scale than a purpose-built partition key would.
-- **Location entry is manual** — buyers and farmers type latitude/longitude rather than the app reading GPS automatically.
-- **Not implemented:** offline sync, translated UI text, push notification delivery, a WhatsApp bot for offline farmers.
-- **Biometric unlock is a local app-access gate**, not encrypted credential storage — it unlocks an already-saved Firebase session on this device only and is cleared on sign-out.
-
 ## Team
 
 - Zario Di Paolo — Android frontend (auth wiring, live screens, navigation, forms, biometric unlock)
 - Kaehil Indurjeeth — backend deployment, Firebase token verification, matching/feed logic, CI/CD
 - Gregory Luyckfasseel — listing/demand CRUD ownership, Mongo validation, photo support, profile/settings persistence
-- Kyra Naidoo — Research Report, frontend test coordination, README and demo evidence
+- Kyra Naidoo — Research Report, unit test coordination, README 
