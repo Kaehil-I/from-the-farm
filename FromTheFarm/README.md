@@ -1,6 +1,6 @@
 # From The Farm
 
-From The Farm" matches South African smallholder farmers' produce listings with nearby buyer demand requests, scored by crop match, distance, quantity fit and harvest timing. The project has two parts:
+**From The Farm** matches South African smallholder farmers' produce listings with nearby buyer demand requests, scored by crop match, distance, quantity fit and harvest timing. The project has two parts:
 
 - **`FromTheFarm.Api`** — ASP.NET Core 8 Web API, MongoDB Atlas, Firebase ID token authentication.
 - **`android`** — Kotlin + Jetpack Compose app. Google sign-in via Firebase, live CRUD against the API, a scored match feed, and optional biometric device unlock.
@@ -11,8 +11,27 @@ Part 1's UI-only prototype (mock data, no networking) has been replaced end to e
 
 ### Backend (`FromTheFarm.Api`)
 
+Run these from the `FromTheFarm` folder.
+
 1. Requires the .NET 8 SDK.
-2. Set the MongoDB connection locally with user-secrets (never commit a real connection string):
+2. Set the MongoDB Atlas connection string with user-secrets (never commit a real connection string):
+
+   ```
+   dotnet user-secrets set "MongoDb:ConnectionString" "<atlas connection string>" --project FromTheFarm.Api
+   ```
+
+   Special characters in the database password must be percent-encoded in the URI (for example `#` becomes `%23`), and the `<` `>` placeholders from Atlas's template must be removed. Atlas must also allow your IP under Network Access.
+3. `Firebase:ProjectId` is already set in `appsettings.json` — it is a public identifier, not a secret.
+4. `dotnet run --project FromTheFarm.Api`, then call `GET /api/v1/health`. It returns `healthy` once the Mongo ping succeeds. Swagger is served at `/swagger` in Development only.
+
+### Android (`android`)
+
+1. Open the `android` folder (not the repository root) in Android Studio.
+2. In `android/local.properties`, next to `sdk.dir`, set the API address, including the `/api/v1/` prefix (the Retrofit endpoints in `FarmApi.kt` don't repeat it):
+
+   ```
+   API_BASE_URL=https://<your-api-host>/api/v1/
+   ```
 
    (`-PAPI_BASE_URL` on the Gradle command line overrides this.) Without a valid HTTPS URL here, `FarmRepository` throws with a clear message rather than silently failing.
 3. `android/app/google-services.json` must belong to the same Firebase project as the backend, with Google sign-in enabled and your local debug key's SHA-1 registered — sign-in fails otherwise. CI can still compile without this file; the Google Services plugin is only applied when it's present.
@@ -32,6 +51,7 @@ Part 1's UI-only prototype (mock data, no networking) has been replaced end to e
 
 ```
 FromTheFarm.Api/
+├── Dockerfile                        — multi-stage .NET 8 build, used for the Render deployment
 ├── Program.cs                        — DI, Mongo client, Firebase JWT bearer auth, Swagger
 ├── Controllers/
 │   ├── AuthController.cs             — POST auth/session (create-or-fetch profile)
@@ -51,7 +71,6 @@ FromTheFarm.Api/
 FromTheFarm.Api.Tests/
 ├── MatchingServiceTests.cs           — 9 tests
 ├── DateOnlySerializerTests.cs        — 3 tests
-├── ClaimsPrincipalExtensionsTests.cs — 3 tests
 └── UserProfileTests.cs               — 3 tests
 
 android/app/src/main/java/com/fromthefarm/app/
@@ -76,14 +95,31 @@ android/app/src/main/java/com/fromthefarm/app/
     ├── ui/FarmViewModelTest.kt       — session, error handling, save/delete, match lifecycle
     └── ui/SettingsProfileTest.kt
 ```
+
 ## Testing status
 
-- **Backend**: 18 unit tests across `MatchingServiceTests`, `DateOnlySerializerTests`, `ClaimsPrincipalExtensionsTests`, `UserProfileTests` — this is 100% of the pure, isolated logic in the API. The 6 controllers and `MongoRepository` are not unit tested, because `MongoRepository<T>` is a concrete class rather than an interface, so there's no way to fake it in a test without a small refactor first.
+- **Backend**: 15 unit tests across `MatchingServiceTests`, `DateOnlySerializerTests` and `UserProfileTests`, run in CI on every push. The small `ClaimsPrincipalExtensions` helper is pure logic but not covered yet. The 6 controllers and `MongoRepository` are not unit tested, because `MongoRepository<T>` is a concrete class rather than an interface, so there's no way to fake it in a test without a small refactor first.
 - **Android**: 25 unit tests across `FarmApiTest`, `FormValidationTest`, `FarmViewModelTest`, `SettingsProfileTest` — this is 100% of what the current test setup (JUnit + coroutines-test + MockWebServer, no Robolectric) can reach. The Compose screens themselves (`RecordEditor`, `NearbyFilter`, `ProfileEditor`, `BiometricAction`, navigation) and `PhotoTools.prepare()` in `ListingPhoto.kt` all call real Android framework classes and would need either Compose UI tests (run on a device/emulator) or Robolectric to cover.
+
+## Deployment and CI
+
+- The API ships as a container. Render has no native .NET runtime, so it builds from `FromTheFarm.Api/Dockerfile`. The container binds to Render's `PORT` variable, and the host's health check uses the unauthenticated `GET /api/v1/health`.
+- The only real production secret is `MongoDb__ConnectionString`, set as an environment variable on the host.
+- GitHub Actions: **Backend CI** restores, builds, runs the unit tests and builds the Docker image; **Android CI** runs the unit tests, `assembleDebug` and lint. Each workflow only runs when its own folder changes.
+
+## Known gaps
+
+- Push notifications (Firebase Cloud Messaging) are not implemented on either side.
+- Offline creation and sync (Room) is not implemented. The API already accepts a `clientGeneratedId` for it.
+- The language selector (English / isiZulu / Afrikaans) saves to the profile, but the app's text is not translated — every screen is English regardless of the choice.
+- Editing a listing does not replace its photo (`PUT /listings/{id}` ignores `photoBase64`), and photos are stored inline on the listing document as base64, which is a stopgap for real object storage.
+- The rating endpoint is `POST /matches/{id}/rating`; the design document specifies `/ratings` plus a `GET` for the caller's own rating, so the app tracks "already rated" locally.
+- The `farmName` / `buyerName` public labels from the design document are not implemented; a match card shows crop, quantity and distance only until the match is confirmed.
+- Controller and match-lifecycle logic has no automated tests (see Testing status).
 
 ## Team
 
 - Zario Di Paolo — Android frontend (auth wiring, live screens, navigation, forms, biometric unlock)
 - Kaehil Indurjeeth — backend deployment, Firebase token verification, matching/feed logic, CI/CD
 - Gregory Luyckfasseel — listing/demand CRUD ownership, Mongo validation, photo support, profile/settings persistence
-- Kyra Naidoo — Research Report, unit test coordination, README 
+- Kyra Naidoo — Research Report, unit test coordination, README
