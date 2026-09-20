@@ -30,8 +30,8 @@ import java.io.File
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecordEditor(demand: Boolean, id: String?, listing: Listing?, request: Demand?, busy: Boolean,
-    onBack: () -> Unit, onSave: (String, Double, String, String, Location, String?) -> Unit) {
-    var crop by rememberSaveable(id, demand) { mutableStateOf(if (demand) request?.cropType ?: "" else listing?.cropType ?: "") }
+    seedCropType: String? = null, onBack: () -> Unit, onSave: (String, Double, String, String, Location, String?) -> Unit) {
+    var crop by rememberSaveable(id, demand, seedCropType) { mutableStateOf(if (demand) request?.cropType ?: seedCropType.takeIf { id == null }.orEmpty() else listing?.cropType ?: "") }
     var quantity by rememberSaveable(id, demand) { mutableStateOf(if (demand) request?.quantityNeeded?.toString() ?: "" else listing?.quantity?.toString() ?: "") }
     var unit by rememberSaveable(id, demand) { mutableStateOf(if (demand) request?.unit ?: "kg" else listing?.unit ?: "kg") }
     var date by rememberSaveable(id, demand) { mutableStateOf(if (demand) request?.deadline ?: "" else listing?.harvestDate ?: "") }

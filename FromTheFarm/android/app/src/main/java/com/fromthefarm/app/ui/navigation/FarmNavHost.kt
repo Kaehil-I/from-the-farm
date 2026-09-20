@@ -36,6 +36,7 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
     var completeId by remember { mutableStateOf<String?>(null) }
     var lastUserId by rememberSaveable { mutableStateOf<String?>(null) }
     var lastRole by rememberSaveable { mutableStateOf<String?>(null) }
+    var demandSeedCrop by rememberSaveable { mutableStateOf<String?>(null) }
     val profile = state.profile
     if (state.biometricLocked) {
         Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -52,14 +53,14 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
     val farmer = profile?.role == "Farmer"
     LaunchedEffect(profile?.userId) {
         if (profile != null && lastUserId != profile.userId) {
-            tab = "Home"; editor = null; matchId = null; deleteId = null
+            tab = "Home"; editor = null; matchId = null; deleteId = null; demandSeedCrop = null
             lastUserId = profile.userId
             lastRole = profile.role
         }
     }
     LaunchedEffect(profile?.role) {
         if (profile != null && lastRole != null && lastRole != profile.role) {
-            tab = "Home"; editor = null; editingId = null; matchId = null; deleteId = null; completeId = null
+            tab = "Home"; editor = null; editingId = null; matchId = null; deleteId = null; completeId = null; demandSeedCrop = null
         }
         if (profile != null) lastRole = profile.role
     }
@@ -113,6 +114,7 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
                     Text("The record is not available. Return to your records and refresh.")
                     TextButton(enabled = !state.busy, onClick = { editor = null }) { Text("Back") }
                 } else RecordEditor(demand, editingId, state.listings.find { it.id == editingId }, state.demands.find { it.id == editingId }, state.busy,
+                    seedCropType = demandSeedCrop,
                     onBack = { editor = null }, onSave = { crop, amount, unit, date, location, photo ->
                         if (demand) vm.saveDemand(editingId, DemandWrite(crop, amount, unit, date, location)) { editor = null }
                         else vm.saveListing(editingId, ListingWrite(crop, amount, unit, date, location, photo)) { editor = null }
@@ -165,7 +167,7 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
                     }
                     "Listings" -> {
                         Text(if (farmer) "My listings" else "My demand requests", style = MaterialTheme.typography.titleLarge)
-                        Button(enabled = !state.busy, onClick = { editingId = null; editor = if (farmer) "listing" else "demand" }) {
+                        Button(enabled = !state.busy, onClick = { editingId = null; demandSeedCrop = null; editor = if (farmer) "listing" else "demand" }) {
                             Text(if (farmer) "Add listing" else "Post demand")
                         }
                         if (farmer) {
@@ -181,8 +183,10 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
                                 { editingId = item.id; editor = "demand" }, { deleteId = item.id }) }
                             Text("Available produce", style = MaterialTheme.typography.titleLarge)
                             NearbyFilter(profile.searchRadiusKm, state.busy, vm::browse)
-                            state.listings.forEach {
-                                Text("${it.cropType} · ${it.quantity} ${it.unit} · ${it.harvestDate}")
+                            state.listings.forEach { item ->
+                                BrowseListingCard(item, state.busy) {
+                                    editingId = null; demandSeedCrop = item.cropType; editor = "demand"
+                                }
                             }
                         }
                     }
@@ -229,4 +233,15 @@ private fun RecordCard(title: String, summary: String, busy: Boolean, edit: () -
             TextButton(enabled = !busy, onClick = remove) { Text("Remove") }
         }
     } }
+}
+
+@Composable
+private fun BrowseListingCard(item: Listing, busy: Boolean, openDemand: () -> Unit) {
+    Card(onClick = openDemand, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            ListingPhoto(item.photoUrl)
+            Text(item.cropType, style = MaterialTheme.typography.titleMedium)
+            Text("${item.quantity} ${item.unit} · ${item.harvestDate}")
+        }
+    }
 }
