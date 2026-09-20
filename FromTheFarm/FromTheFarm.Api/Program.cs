@@ -59,6 +59,13 @@ builder.Services.AddSingleton(sp => new MongoRepository<DemandRequest>(sp.GetReq
 builder.Services.AddSingleton(sp => new MongoRepository<MatchDocument>(sp.GetRequiredService<IMongoDatabase>(), "Matches"));
 builder.Services.AddSingleton(sp => new MongoRepository<Rating>(sp.GetRequiredService<IMongoDatabase>(), "Ratings"));
 
+// Listings, demands and profiles resolve through the interface so their
+// controllers can be unit-tested against an in-memory double. Both
+// registrations share the one singleton instance per collection.
+builder.Services.AddSingleton<IMongoRepository<UserProfile>>(sp => sp.GetRequiredService<MongoRepository<UserProfile>>());
+builder.Services.AddSingleton<IMongoRepository<Listing>>(sp => sp.GetRequiredService<MongoRepository<Listing>>());
+builder.Services.AddSingleton<IMongoRepository<DemandRequest>>(sp => sp.GetRequiredService<MongoRepository<DemandRequest>>());
+
 builder.Services.AddSingleton<MatchingService>();
 
 // ---- Firebase-issued ID token validation ----
@@ -85,6 +92,19 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Index creation is best-effort. A cluster that is briefly unreachable at
+// start-up should not stop the service coming up — the health endpoint is
+// what reports database state — and the operation is idempotent, so the
+// next restart retries it.
+try
+{
+    await MongoIndexes.EnsureAsync(app.Services.GetRequiredService<IMongoDatabase>());
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "Could not create MongoDB indexes at start-up.");
+}
 
 if (app.Environment.IsDevelopment())
 {

@@ -12,7 +12,7 @@ namespace FromTheFarm.Api.Services;
 //   - Mongo creates a collection on first write, so there is no
 //     CreateContainerIfNotExists equivalent and no blocking I/O in the
 //     constructor.
-public class MongoRepository<T> where T : class, IDocument
+public class MongoRepository<T> : IMongoRepository<T> where T : class, IDocument
 {
     private readonly IMongoCollection<T> _collection;
 

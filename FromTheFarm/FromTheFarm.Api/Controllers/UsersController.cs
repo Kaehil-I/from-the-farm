@@ -2,8 +2,6 @@ using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 
 namespace FromTheFarm.Api.Controllers;
 
@@ -12,9 +10,9 @@ namespace FromTheFarm.Api.Controllers;
 [Authorize]
 public class UsersController : ControllerBase
 {
-    private readonly MongoRepository<UserProfile> _users;
+    private readonly IMongoRepository<UserProfile> _users;
 
-    public UsersController(MongoRepository<UserProfile> users)
+    public UsersController(IMongoRepository<UserProfile> users)
     {
         _users = users;
     }
@@ -41,9 +39,14 @@ public class UsersController : ControllerBase
     [HttpPut("me")]
     public async Task<ActionResult<UserProfile>> UpdateMyProfile([FromBody] UpdateProfileRequest request)
     {
-        if (request.SearchRadiusKm is < 1 or > 100)
+        var invalid = RequestValidation.Role(request.Role)
+            ?? RequestValidation.Language(request.Language)
+            ?? RequestValidation.SearchRadiusKm(request.SearchRadiusKm)
+            ?? RequestValidation.Phone(request.Phone);
+
+        if (invalid is not null)
         {
-            return BadRequest("searchRadiusKm must be between 1 and 100.");
+            return BadRequest(invalid);
         }
 
         var uid = User.GetFirebaseUid();
@@ -58,7 +61,10 @@ public class UsersController : ControllerBase
         existing.SearchRadiusKm = request.SearchRadiusKm;
         existing.NotificationsEnabled = request.NotificationsEnabled;
         existing.BiometricLockEnabled = request.BiometricLockEnabled;
-        existing.Phone = request.Phone;
+
+        // A cleared field arrives as an empty string from the form; store it as
+        // absent so "no number shared" is one value rather than two.
+        existing.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
 
         var updated = await _users.UpsertAsync(existing);
         return Ok(updated);

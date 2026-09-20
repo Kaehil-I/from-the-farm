@@ -12,9 +12,9 @@ namespace FromTheFarm.Api.Controllers;
 [Authorize]
 public class DemandsController : ControllerBase
 {
-    private readonly MongoRepository<DemandRequest> _demands;
+    private readonly IMongoRepository<DemandRequest> _demands;
 
-    public DemandsController(MongoRepository<DemandRequest> demands)
+    public DemandsController(IMongoRepository<DemandRequest> demands)
     {
         _demands = demands;
     }
@@ -47,9 +47,17 @@ public class DemandsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<DemandRequest>> CreateDemand([FromBody] CreateDemandRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.CropType) || request.QuantityNeeded <= 0)
+        var invalid = RequestValidation.ForDemand(
+            request.CropType,
+            request.QuantityNeeded,
+            request.Unit,
+            request.Location,
+            request.Deadline,
+            Today);
+
+        if (invalid is not null)
         {
-            return BadRequest("cropType is required and quantityNeeded must be greater than 0.");
+            return BadRequest(invalid);
         }
 
         var uid = User.GetFirebaseUid();
@@ -71,9 +79,32 @@ public class DemandsController : ControllerBase
     [HttpPut("{demandId}")]
     public async Task<ActionResult<DemandRequest>> UpdateDemand(string demandId, [FromBody] CreateDemandRequest request)
     {
+        var invalid = RequestValidation.ForDemand(
+            request.CropType,
+            request.QuantityNeeded,
+            request.Unit,
+            request.Location,
+            request.Deadline,
+            Today);
+
+        if (invalid is not null)
+        {
+            return BadRequest(invalid);
+        }
+
         var uid = User.GetFirebaseUid();
         var existing = await _demands.GetByIdAsync(demandId);
-        if (existing is null) return NotFound();
+        if (existing is null)
+        {
+            return NotFound();
+        }
+
+        // The token identifies the caller; the document records its owner. Without
+        // this check any authenticated user who knows a demand id could edit it.
+        if (!string.Equals(existing.BuyerId, uid, StringComparison.Ordinal))
+        {
+            return Forbid();
+        }
 
         existing.CropType = request.CropType;
         existing.QuantityNeeded = request.QuantityNeeded;
@@ -90,10 +121,20 @@ public class DemandsController : ControllerBase
     {
         var uid = User.GetFirebaseUid();
         var existing = await _demands.GetByIdAsync(demandId);
-        if (existing is null) return NotFound();
+        if (existing is null)
+        {
+            return NotFound();
+        }
+
+        if (!string.Equals(existing.BuyerId, uid, StringComparison.Ordinal))
+        {
+            return Forbid();
+        }
 
         existing.Status = "Expired";
         await _demands.UpsertAsync(existing);
         return NoContent();
     }
+
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow);
 }
