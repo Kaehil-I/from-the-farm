@@ -11,7 +11,7 @@ val localConfig = Properties().apply {
     val config = rootProject.file("local.properties")
     if (config.exists()) config.inputStream().use { load(it) }
 }
-val apiBaseUrl = providers.gradleProperty("API_BASE_URL").orElse(localConfig.getProperty("API_BASE_URL", ""))
+val apiBaseUrl = providers.gradleProperty("API_BASE_URL").orElse(localConfig.getProperty("API_BASE_URL", "https://from-the-farm.onrender.com/api/v1/"))
 
 android {
     namespace = "com.fromthefarm.app"
@@ -59,6 +59,7 @@ dependencies {
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    implementation("com.google.android.gms:play-services-location:21.0.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("com.squareup.retrofit2:retrofit:2.11.0")

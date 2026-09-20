@@ -64,7 +64,7 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
                         in 500..599 -> "The farm service is unavailable. Please try again."
                         else -> "The service rejected the request (${e.code()}). Check your inputs."
                     }
-                    is IOException -> "Cannot reach the service. Check your connection and retry."
+                    is IOException -> "Cannot reach the farm service. Render may be waking up; wait a moment, check your connection, and retry."
                     is IllegalStateException -> e.message ?: "Configuration is incomplete."
                     else -> "The action could not complete. Please try again."
                 }
