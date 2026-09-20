@@ -27,22 +27,23 @@ Run these from the `FromTheFarm` folder.
 ### Android (`android`)
 
 1. Open the `android` folder (not the repository root) in Android Studio.
-2. In `android/local.properties`, next to `sdk.dir`, set the API address, including the `/api/v1/` prefix (the Retrofit endpoints in `FarmApi.kt` don't repeat it):
+2. The app talks to the deployed API at `https://from-the-farm.onrender.com/api/v1/` by default (set in `app/build.gradle.kts`), so no configuration is needed. To use a different backend, set `API_BASE_URL` in `android/local.properties` next to `sdk.dir`, including the `/api/v1/` prefix (the Retrofit endpoints in `FarmApi.kt` don't repeat it):
 
    ```
    API_BASE_URL=https://<your-api-host>/api/v1/
    ```
 
-   (`-PAPI_BASE_URL` on the Gradle command line overrides this.) Without a valid HTTPS URL here, `FarmRepository` throws with a clear message rather than silently failing.
+   (`-PAPI_BASE_URL` on the Gradle command line overrides both.) Without a valid HTTPS URL, `FarmRepository` throws with a clear message rather than silently failing.
 3. `android/app/google-services.json` must belong to the same Firebase project as the backend, with Google sign-in enabled and your local debug key's SHA-1 registered — sign-in fails otherwise. CI can still compile without this file; the Google Services plugin is only applied when it's present.
-4. Gradle sync, then run on an emulator or device. Without a configured API URL, Google sign-in still succeeds (proving Firebase auth works) but profile loading fails — this is expected, not a bug.
+4. Gradle sync, then run on an emulator or device. The free Render instance sleeps when idle, so the first request after a quiet period can take up to a minute; the app allows 90 seconds and its error message says Render may be waking up.
 
 ## How the app works, end to end
 
 - A user signs in with Google. Firebase hands back a signed ID token proving who they are.
 - Every request from the app to the API carries that token; the API re-validates it against Google before trusting it, and reads the user's ID out of the token itself — never from anything the app just typed in.
-- First sign-in only: the user picks **Farmer** or **Buyer**, a language, a search radius, and optionally a phone number.
-- **Farmers** manage produce listings (crop, quantity, harvest date, location, optional photo). **Buyers** manage demand requests the same way, plus a "find nearby produce" search.
+- The API validates every listing, demand and profile write on the server, and returns 403 if a user tries to edit or delete a record they don't own.
+- On first sign-in the user picks a starting mode (**Farmer** or **Buyer**), a language, a search radius, and optionally a phone number. Settings can switch the mode later without signing out; listings and demand requests stay attached to the account.
+- **Farmers** manage produce listings (crop, quantity, harvest date, location, optional photo). **Buyers** manage demand requests the same way, plus a "find nearby produce" search. Location can be filled from the device GPS or entered manually.
 - **Matching**: `MatchingService` scores every listing/demand pair — 35% distance, 30% crop type (all-or-nothing), 20% quantity fit, 15% freshness (harvest vs. deadline, decaying to zero 14 days late). Anything outside the search radius, a different crop, or scoring below 0.4 overall is excluded entirely rather than shown as a weak match.
 - Matches move through a fixed lifecycle the app enforces in order: **Suggested** (contact details hidden) → **Confirmed** (contact details unlock) → **Completed** → **Rated**. You can't skip a stage.
 - Optional **biometric unlock** is a local, per-device app-access lock on top of an already-saved Firebase session — not a separate account, and not encrypted credential storage.
@@ -55,7 +56,7 @@ FromTheFarm.Api/
 ├── Program.cs                        — DI, Mongo client, Firebase JWT bearer auth, Swagger
 ├── Controllers/
 │   ├── AuthController.cs             — POST auth/session (create-or-fetch profile)
-│   ├── UsersController.cs            — GET/PUT users/me (profile + onboarding)
+│   ├── UsersController.cs            — GET/PUT users/me (profile, onboarding, mode switch)
 │   ├── ListingsController.cs         — farmer listings CRUD, buyer distance search
 │   ├── DemandsController.cs          — buyer demand requests CRUD
 │   ├── MatchesController.cs          — scored feed, detail, confirm/complete/rate
@@ -64,14 +65,22 @@ FromTheFarm.Api/
 └── Services/
     ├── MatchingService.cs            — weighted match scoring + Haversine distance
     ├── MongoRepository.cs            — generic get/upsert/delete wrapper per collection
+    ├── IMongoRepository.cs           — the interface controllers depend on, so tests can substitute a double
+    ├── MongoIndexes.cs               — best-effort index creation at startup
+    ├── RequestValidation.cs          — server-side validation shared by the write endpoints
     ├── ClaimsPrincipalExtensions.cs  — Firebase UID from the validated token
     ├── DateOnlySerializer.cs         — DateOnly <-> "yyyy-MM-dd" BSON string
     └── MongoDbOptions.cs             — connection string / database name binding
 
 FromTheFarm.Api.Tests/
+├── RequestValidationTests.cs         — 54 tests
+├── UsersControllerTests.cs           — 18 tests
+├── ListingsControllerTests.cs        — 15 tests
 ├── MatchingServiceTests.cs           — 9 tests
+├── DemandsControllerTests.cs         — 8 tests
 ├── DateOnlySerializerTests.cs        — 3 tests
-└── UserProfileTests.cs               — 3 tests
+├── UserProfileTests.cs               — 3 tests
+└── TestDoubles.cs                    — in-memory repository and fake caller identity
 
 android/app/src/main/java/com/fromthefarm/app/
 ├── MainActivity.kt                   — entry point, hosts FarmNavHost
@@ -85,7 +94,7 @@ android/app/src/main/java/com/fromthefarm/app/
 │   ├── FarmViewModel.kt              — single state holder: session, profile, listings/demands/matches, error mapping
 │   ├── navigation/FarmNavHost.kt      — authenticated shell: bottom nav, editors, match detail, biometric lock screen
 │   └── screens/
-│       ├── LiveForms.kt              — RecordEditor (listing/demand form), NearbyFilter (buyer search), ProfileEditor (onboarding/settings)
+│       ├── LiveForms.kt              — RecordEditor (listing/demand form, GPS location), NearbyFilter (buyer search), ProfileEditor (onboarding/settings, mode switch)
 │       ├── BiometricAction.kt        — fingerprint/face prompt button
 │       ├── ListingPhoto.kt           — photo loader/downscaler + PhotoTools.prepare()
 │       └── (Part 1 preview screens kept as design references, not wired into the live shell)
@@ -98,13 +107,13 @@ android/app/src/main/java/com/fromthefarm/app/
 
 ## Testing status
 
-- **Backend**: 15 unit tests across `MatchingServiceTests`, `DateOnlySerializerTests` and `UserProfileTests`, run in CI on every push. The small `ClaimsPrincipalExtensions` helper is pure logic but not covered yet. The 6 controllers and `MongoRepository` are not unit tested, because `MongoRepository<T>` is a concrete class rather than an interface, so there's no way to fake it in a test without a small refactor first.
+- **Backend**: 110 unit tests, run in CI on every push. The listings, demands and users controllers are tested against an in-memory `IMongoRepository` double (ownership checks, photo handling, validation, persistence), alongside `RequestValidationTests`, `MatchingServiceTests`, `DateOnlySerializerTests` and `UserProfileTests`. Not covered yet: `MatchesController` (status lifecycle, contact gating, one rating per user), `AuthController`, `HealthController`, the concrete `MongoRepository` and `MongoIndexes`, and `ClaimsPrincipalExtensions`. `MatchesController` and `AuthController` still depend on the concrete `MongoRepository<T>`; moving them to `IMongoRepository<T>`, as the other controllers already are, would let them be tested the same way.
 - **Android**: 25 unit tests across `FarmApiTest`, `FormValidationTest`, `FarmViewModelTest`, `SettingsProfileTest` — this is 100% of what the current test setup (JUnit + coroutines-test + MockWebServer, no Robolectric) can reach. The Compose screens themselves (`RecordEditor`, `NearbyFilter`, `ProfileEditor`, `BiometricAction`, navigation) and `PhotoTools.prepare()` in `ListingPhoto.kt` all call real Android framework classes and would need either Compose UI tests (run on a device/emulator) or Robolectric to cover.
 
 ## Deployment and CI
 
 - The API ships as a container. Render has no native .NET runtime, so it builds from `FromTheFarm.Api/Dockerfile`. The container binds to Render's `PORT` variable, and the host's health check uses the unauthenticated `GET /api/v1/health`.
-- The only real production secret is `MongoDb__ConnectionString`, set as an environment variable on the host.
+- The only real production secret is `MongoDb__ConnectionString`, set as an environment variable on the host. Collection indexes are created best-effort at startup, so an unreachable cluster doesn't stop the service from starting.
 - GitHub Actions: **Backend CI** restores, builds, runs the unit tests and builds the Docker image; **Android CI** runs the unit tests, `assembleDebug` and lint. Each workflow only runs when its own folder changes.
 
 ## Known gaps
@@ -112,10 +121,10 @@ android/app/src/main/java/com/fromthefarm/app/
 - Push notifications (Firebase Cloud Messaging) are not implemented on either side.
 - Offline creation and sync (Room) is not implemented. The API already accepts a `clientGeneratedId` for it.
 - The language selector (English / isiZulu / Afrikaans) saves to the profile, but the app's text is not translated — every screen is English regardless of the choice.
-- Editing a listing does not replace its photo (`PUT /listings/{id}` ignores `photoBase64`), and photos are stored inline on the listing document as base64, which is a stopgap for real object storage.
+- Editing a listing can replace its photo but not remove it, and photos are stored inline on the listing document as base64, which is a stopgap for real object storage.
 - The rating endpoint is `POST /matches/{id}/rating`; the design document specifies `/ratings` plus a `GET` for the caller's own rating, so the app tracks "already rated" locally.
 - The `farmName` / `buyerName` public labels from the design document are not implemented; a match card shows crop, quantity and distance only until the match is confirmed.
-- Controller and match-lifecycle logic has no automated tests (see Testing status).
+- The match lifecycle and `AuthController` have no automated tests yet (see Testing status).
 
 ## Team
 
