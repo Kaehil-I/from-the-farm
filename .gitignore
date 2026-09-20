@@ -8,3 +8,11 @@
 .env
 .env.*
 !.env.example
+
+# .NET build output
+**/bin/
+**/obj/
+**/.vs/
+
+# .NET user secrets / local overrides
+**/appsettings.Development.json

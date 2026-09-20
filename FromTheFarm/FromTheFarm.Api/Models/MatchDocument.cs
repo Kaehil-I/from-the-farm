@@ -1,4 +1,7 @@
 using System.Text.Json.Serialization;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using FromTheFarm.Api.Services;
 
 namespace FromTheFarm.Api.Models;
 
@@ -10,6 +13,7 @@ public class CounterpartSnapshot
     public string CropType { get; set; } = string.Empty;
 
     [JsonPropertyName("quantity")]
+    [BsonRepresentation(BsonType.Decimal128)]
     public decimal Quantity { get; set; }
 
     [JsonPropertyName("unit")]
@@ -22,7 +26,7 @@ public class CounterpartSnapshot
     public DateOnly RelevantDate { get; set; }
 }
 
-// Cosmos container: Matches. Partition key: /id
+// Mongo collection: Matches
 //
 // NOTE (student-project simplification): the design doc discusses partitioning
 // Matches by the querying user's ID, but a Match has two legitimate "owners"
@@ -32,8 +36,9 @@ public class CounterpartSnapshot
 // filter on farmerId or buyerId. This costs more RUs at scale than a
 // purpose-built partition strategy would, but it's correct and simple, which
 // matters more at this project's traffic volume than RU efficiency does.
-public class MatchDocument
+public class MatchDocument : IDocument
 {
+    [BsonId]
     [JsonPropertyName("id")]
     public string Id { get; set; } = Guid.NewGuid().ToString();
 

@@ -1,5 +1,8 @@
 package com.fromthefarm.app.ui.screens
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,6 +17,11 @@ import java.time.ZoneOffset
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
@@ -51,9 +59,8 @@ fun RecordEditor(demand: Boolean, id: String?, listing: Listing?, request: Deman
     Field("Unit (e.g. kg)", unit, busy) { unit = it }
     Field(if (demand) "Deadline (YYYY-MM-DD)" else "Harvest date (YYYY-MM-DD)", date, busy) { date = it }
     TextButton(enabled = !busy, onClick = { showDatePicker = true }) { Text("Choose date") }
-    Text("Enter the collection location coordinates for accurate matching.")
-    Field("Latitude", latitude, busy) { latitude = it }
-    Field("Longitude", longitude, busy) { longitude = it }
+    LocationFields(latitude, longitude, busy,
+        onLatitudeChange = { latitude = it }, onLongitudeChange = { longitude = it })
     if (!demand) {
         ListingPhoto(photoPath ?: listing?.photoUrl)
         TextButton(enabled = !busy && !photoBusy, onClick = { picker.launch("image/*") }) {
@@ -89,8 +96,8 @@ fun NearbyFilter(radius: Int, busy: Boolean, search: (String?, Int, Location) ->
     var longitude by rememberSaveable { mutableStateOf("") }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
     Field("Crop type (blank for all)", crop, busy) { crop = it }
-    Field("Search latitude", latitude, busy) { latitude = it }
-    Field("Search longitude", longitude, busy) { longitude = it }
+    LocationFields(latitude, longitude, busy,
+        onLatitudeChange = { latitude = it }, onLongitudeChange = { longitude = it })
     Text("Search within $radius km. Change the radius in Settings.")
     error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     Button(enabled = !busy, onClick = {
@@ -102,6 +109,73 @@ fun NearbyFilter(radius: Int, busy: Boolean, search: (String?, Int, Location) ->
     }) { Text("Find nearby produce") }
 }
 
+@SuppressLint("MissingPermission")
+@Composable
+private fun LocationFields(latitude: String, longitude: String, busy: Boolean,
+    onLatitudeChange: (String) -> Unit, onLongitudeChange: (String) -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val locationClient = remember(context) { LocationServices.getFusedLocationProviderClient(context) }
+    var locating by remember { mutableStateOf(false) }
+    var showManual by rememberSaveable { mutableStateOf(latitude.isNotBlank() && longitude.isNotBlank()) }
+    var locationMessage by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val findLocation: () -> Unit = {
+        scope.launch {
+            locating = true
+            locationMessage = null
+            try {
+                val token = CancellationTokenSource()
+                val result = locationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, token.token).await()
+                if (result == null) {
+                    locationMessage = "Could not determine your location. Turn on Location in Android Settings or enter it manually."
+                    showManual = true
+                } else {
+                    onLatitudeChange(String.format(java.util.Locale.US, "%.6f", result.latitude))
+                    onLongitudeChange(String.format(java.util.Locale.US, "%.6f", result.longitude))
+                    locationMessage = "Current location selected."
+                    showManual = false
+                }
+            } catch (_: Exception) {
+                locationMessage = "Could not determine your location. Check Location in Android Settings or enter it manually."
+                showManual = true
+            } finally {
+                locating = false
+            }
+        }
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        if (grants[Manifest.permission.ACCESS_FINE_LOCATION] == true || grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
+            findLocation()
+        } else {
+            locationMessage = "Location permission was not granted. You can enter the coordinates manually."
+            showManual = true
+        }
+    }
+
+    Text("Location", style = MaterialTheme.typography.titleMedium)
+    Text("Use your device location for accurate nearby matching.")
+    Button(enabled = !busy && !locating, onClick = {
+        val fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (fineGranted || coarseGranted) findLocation()
+        else permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+    }) { Text(if (locating) "Finding location…" else "Use my current location") }
+    if (latitude.isNotBlank() && longitude.isNotBlank() && !showManual) {
+        Text("Selected location: $latitude, $longitude", style = MaterialTheme.typography.bodySmall)
+    }
+    locationMessage?.let {
+        Text(it, color = if (it == "Current location selected.") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+    }
+    TextButton(enabled = !busy && !locating, onClick = { showManual = !showManual }) {
+        Text(if (showManual) "Hide manual coordinates" else "Enter coordinates manually")
+    }
+    if (showManual) {
+        Field("Latitude", latitude, busy || locating, onLatitudeChange)
+        Field("Longitude", longitude, busy || locating, onLongitudeChange)
+    }
+}
+
 @Composable
 fun ProfileEditor(profile: Profile, busy: Boolean, onboarding: Boolean, save: (ProfileUpdate) -> Unit) {
     var role by rememberSaveable(profile.userId, profile.role) { mutableStateOf(profile.role ?: "Farmer") }
@@ -110,10 +184,13 @@ fun ProfileEditor(profile: Profile, busy: Boolean, onboarding: Boolean, save: (P
     var phone by rememberSaveable(profile.userId, profile.phone) { mutableStateOf(profile.phone ?: "") }
     var notifications by rememberSaveable(profile.userId, profile.notificationsEnabled) { mutableStateOf(profile.notificationsEnabled) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
+    val roleChanged = profile.role != null && role != profile.role
     Text(if (onboarding) "Set up your profile" else "Settings", style = MaterialTheme.typography.titleLarge)
-    if (onboarding) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Text(if (onboarding) "Choose how you want to start" else "Active mode", style = MaterialTheme.typography.titleMedium)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf("Farmer", "Buyer").forEach { value -> FilterChip(selected = role == value, enabled = !busy, onClick = { role = value }, label = { Text(value) }) }
-    } else Text("Account type: $role")
+    }
+    if (!onboarding) Text("Switch modes without signing out. Your listings and demand requests stay connected to this account.")
     Text("Preferred language")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf("en" to "English", "zu" to "isiZulu", "af" to "Afrikaans").forEach { (code, name) ->
@@ -130,7 +207,7 @@ fun ProfileEditor(profile: Profile, busy: Boolean, onboarding: Boolean, save: (P
         val clean = phone.trim()
         error = if (clean.isNotEmpty() && !clean.matches(Regex("[+0-9 ()-]{7,25}"))) "Enter a valid phone number or leave it blank." else null
         if (error == null) save(ProfileUpdate(role, language, radius.roundToInt(), notifications, profile.biometricLockEnabled, clean.ifBlank { null }))
-    }) { Text(if (onboarding) "Continue" else "Save preferences") }
+    }) { Text(if (onboarding) "Continue" else if (roleChanged) "Switch to $role" else "Save preferences") }
 }
 
 @Composable

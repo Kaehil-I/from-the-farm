@@ -64,7 +64,7 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
                         in 500..599 -> "The farm service is unavailable. Please try again."
                         else -> "The service rejected the request (${e.code()}). Check your inputs."
                     }
-                    is IOException -> "Cannot reach the service. Check your connection and retry."
+                    is IOException -> "Cannot reach the farm service. Render may be waking up; wait a moment, check your connection, and retry."
                     is IllegalStateException -> e.message ?: "Configuration is incomplete."
                     else -> "The action could not complete. Please try again."
                 }
@@ -111,7 +111,11 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
     }
     fun saveProfile(body: ProfileUpdate) = action {
         require(body.role in listOf("Farmer", "Buyer") && body.searchRadiusKm in 1..100)
-        val profile = repository.api.profile(repository.token(), body)
+        // Biometric unlock is enrolled per device, so the device is the source of truth.
+        // Mirror it into every profile write; otherwise the stored flag keeps whatever
+        // value the form was first rendered with and drifts out of date silently.
+        val write = body.copy(biometricLockEnabled = repository.biometricEnabled())
+        val profile = repository.api.profile(repository.token(), write)
         mutable.value = mutable.value.copy(profile = profile, loaded = false, message = "Preferences saved.")
     }
     private suspend fun load() {

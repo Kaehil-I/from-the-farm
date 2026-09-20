@@ -2,6 +2,8 @@ using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace FromTheFarm.Api.Controllers;
 
@@ -9,9 +11,9 @@ namespace FromTheFarm.Api.Controllers;
 [Route("api/v1/auth")]
 public class AuthController : ControllerBase
 {
-    private readonly CosmosRepository<UserProfile> _users;
+    private readonly MongoRepository<UserProfile> _users;
 
-    public AuthController(CosmosRepository<UserProfile> users)
+    public AuthController(MongoRepository<UserProfile> users)
     {
         _users = users;
     }
@@ -36,7 +38,7 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<SessionResponse>> ExchangeSession([FromBody] SessionRequest request)
     {
         var uid = User.GetFirebaseUid();
-        var existing = await _users.GetByIdAsync(uid, uid);
+        var existing = await _users.GetByIdAsync(uid);
 
         if (existing is not null)
         {
@@ -59,7 +61,7 @@ public class AuthController : ControllerBase
             Role = null
         };
 
-        await _users.UpsertAsync(newProfile, uid);
+        await _users.UpsertAsync(newProfile);
 
         return Ok(new SessionResponse(
             newProfile.UserId,

@@ -1,11 +1,15 @@
 using System.Text.Json.Serialization;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using FromTheFarm.Api.Services;
 
 namespace FromTheFarm.Api.Models;
 
-// Cosmos container: Users. Partition key: /userId
-public class UserProfile
+// Mongo collection: Users
+public class UserProfile : IDocument
 {
-    // Cosmos requires a document "id" — we reuse the Firebase UID for both.
+    // Mongo requires a document "_id" — we reuse the Firebase UID for both.
+    [BsonId]
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
 
@@ -43,5 +47,6 @@ public class UserProfile
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [JsonIgnore]
+    [BsonIgnore]
     public bool OnboardingComplete => Role is not null;
 }
