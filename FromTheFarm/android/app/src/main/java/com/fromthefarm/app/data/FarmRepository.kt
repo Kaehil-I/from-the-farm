@@ -41,7 +41,7 @@ class FarmRepository(private val context: Context) : FarmDataSource {
     override val api: FarmApi by lazy {
         check(BuildConfig.API_BASE_URL.startsWith("https://")) { "The farm service URL is not configured. Set API_BASE_URL in local.properties to the team's deployed HTTPS address, then rebuild." }
         Retrofit.Builder().baseUrl(BuildConfig.API_BASE_URL.trimEnd('/') + "/")
-            .client(OkHttpClient.Builder().callTimeout(30, TimeUnit.SECONDS)
+            .client(OkHttpClient.Builder().connectTimeout(15, TimeUnit.SECONDS).readTimeout(90, TimeUnit.SECONDS).callTimeout(90, TimeUnit.SECONDS)
                 .followRedirects(false).retryOnConnectionFailure(false).build())
             .addConverterFactory(GsonConverterFactory.create()).build().create(FarmApi::class.java)
     }

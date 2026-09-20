@@ -70,6 +70,21 @@ class SettingsProfileTest {
         assertNotNull(vm.state.value.error)
     }
 
+    @Test fun switchingToBuyerKeepsTheSameAccountAndUpdatesTheActiveRole() = runTest(dispatcher) {
+        val source = StubSource()
+        val vm = FarmViewModel(source)
+        advanceUntilIdle()
+
+        val userId = vm.state.value.profile!!.userId
+        vm.saveProfile(ProfileUpdate("Buyer", "en", 10, true, false, null))
+        advanceUntilIdle()
+
+        assertEquals(userId, vm.state.value.profile?.userId)
+        assertEquals("Buyer", source.backend.lastUpdate?.role)
+        assertEquals("Buyer", vm.state.value.profile?.role)
+        assertFalse(vm.state.value.loaded)
+    }
+
     private class StubSource : FarmDataSource {
         val backend = StubApi()
         override val api: FarmApi = backend

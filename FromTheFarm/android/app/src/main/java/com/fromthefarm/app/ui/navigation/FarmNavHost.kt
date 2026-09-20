@@ -35,6 +35,7 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
     var deleteId by remember { mutableStateOf<String?>(null) }
     var completeId by remember { mutableStateOf<String?>(null) }
     var lastUserId by rememberSaveable { mutableStateOf<String?>(null) }
+    var lastRole by rememberSaveable { mutableStateOf<String?>(null) }
     val profile = state.profile
     if (state.biometricLocked) {
         Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -53,7 +54,14 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
         if (profile != null && lastUserId != profile.userId) {
             tab = "Home"; editor = null; matchId = null; deleteId = null
             lastUserId = profile.userId
+            lastRole = profile.role
         }
+    }
+    LaunchedEffect(profile?.role) {
+        if (profile != null && lastRole != null && lastRole != profile.role) {
+            tab = "Home"; editor = null; editingId = null; matchId = null; deleteId = null; completeId = null
+        }
+        if (profile != null) lastRole = profile.role
     }
     LaunchedEffect(onboarded, state.loaded, state.busy, state.error) {
         if (onboarded && !state.loaded && !state.busy && state.error == null) vm.refresh()
