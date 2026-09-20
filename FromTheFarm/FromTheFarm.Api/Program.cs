@@ -93,6 +93,10 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Puts the running build in the host's log stream, so a deploy's logs can be
+// matched to a commit without calling the API.
+app.Logger.LogInformation("From The Farm API starting, build {Commit}", BuildInfo.Commit);
+
 // Index creation is best-effort. A cluster that is briefly unreachable at
 // start-up should not stop the service coming up — the health endpoint is
 // what reports database state — and the operation is idempotent, so the
