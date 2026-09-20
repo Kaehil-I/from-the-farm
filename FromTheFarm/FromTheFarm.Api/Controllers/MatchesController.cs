@@ -54,12 +54,9 @@ public class MatchesController : ControllerBase
         // records. Match IDs are deterministic (listingId:demandRequestId),
         // so repeated calls upsert rather than duplicate.
         //
-        // TODO (post-Part-2 improvement): this recomputes on every GET,
-        // which is fine at this project's scale but not how a production
-        // system would do it. A MongoDB change stream reacting to
-        // new/updated Listings and Demands would compute matches once at
-        // write time instead — worth mentioning as a known limitation in
-        // the README rather than something to build under this deadline.
+        // Matching recomputes on every GET. That is acceptable at this
+        // scale; a production system would compute matches once at write
+        // time, driven by a change stream on Listings and Demands.
         if (profile.Role == "Farmer")
         {
             await GenerateMatchesForFarmerAsync(uid, profile.SearchRadiusKm);
@@ -127,12 +124,9 @@ public class MatchesController : ControllerBase
         return NoContent();
     }
 
-    // Gap identified during Zario's review: Section 5 describes a
-    // Confirmed → Completed transition (ratings can only be submitted once
-    // "Completed"), but no endpoint actually performed that transition —
-    // there was no way for a match to ever reach "Completed" at all. Either
-    // party marks the exchange as done once it's actually happened in
-    // person; this is what unblocks POST /matches/{matchId}/rating.
+    // Performs the Confirmed → Completed transition described in Section 5.
+    // Either party marks the exchange as done once it has happened in
+    // person, which is what unblocks POST /matches/{matchId}/rating.
     [HttpPost("{matchId}/complete")]
     public async Task<IActionResult> CompleteMatch(string matchId)
     {

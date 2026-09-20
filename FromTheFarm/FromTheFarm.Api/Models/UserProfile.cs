@@ -19,11 +19,9 @@ public class UserProfile : IDocument
     [JsonPropertyName("displayName")]
     public string DisplayName { get; set; } = string.Empty;
 
-    // Referenced by GET /matches/{id}'s counterpartContact.phone in Section 5,
-    // but no settings field for collecting it was ever specified — this is a
-    // gap in the original design, not an oversight here. Flag to Zario: needs
-    // a field in the settings/onboarding screen, and Firebase Auth's Google
-    // Sign-In doesn't supply a phone number, so it must be entered manually.
+    // Released to a counterpart through counterpartContact.phone on
+    // GET /matches/{id} once a match is confirmed. Entered by the user in
+    // Settings: Google Sign-In does not supply a phone number.
     [JsonPropertyName("phone")]
     public string? Phone { get; set; }
 
