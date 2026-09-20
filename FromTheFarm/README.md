@@ -77,9 +77,9 @@ FromTheFarm.Api/
 FromTheFarm.Api.Tests/
 ├── RequestValidationTests.cs         — 54 tests
 ├── UsersControllerTests.cs           — 18 tests
-├── ListingsControllerTests.cs        — 20 tests
+├── ListingsControllerTests.cs        — 23 tests
 ├── MatchingServiceTests.cs           — 9 tests
-├── DemandsControllerTests.cs         — 13 tests
+├── DemandsControllerTests.cs         — 16 tests
 ├── BuildInfoTests.cs                 — 5 tests
 ├── DateOnlySerializerTests.cs        — 3 tests
 ├── UserProfileTests.cs               — 3 tests
@@ -110,7 +110,7 @@ android/app/src/main/java/com/fromthefarm/app/
 
 ## Testing status
 
-- **Backend**: 125 unit tests, run in CI on every push. The listings, demands and users controllers are tested against an in-memory `IMongoRepository` double (ownership and role checks, photo handling, validation, persistence), alongside `RequestValidationTests`, `MatchingServiceTests`, `DateOnlySerializerTests` and `UserProfileTests`. Not covered yet: `MatchesController` (status lifecycle, contact gating, one rating per user), `AuthController`, `HealthController`, the concrete `MongoRepository` and `MongoIndexes`, and `ClaimsPrincipalExtensions`. `MatchesController` and `AuthController` still depend on the concrete `MongoRepository<T>`; moving them to `IMongoRepository<T>`, as the other controllers already are, would let them be tested the same way.
+- **Backend**: 131 unit tests, run in CI on every push. The listings, demands and users controllers are tested against an in-memory `IMongoRepository` double (ownership and role checks, photo handling, validation, persistence), alongside `RequestValidationTests`, `MatchingServiceTests`, `DateOnlySerializerTests` and `UserProfileTests`. Not covered yet: `MatchesController` (status lifecycle, contact gating, one rating per user), `AuthController`, `HealthController`, the concrete `MongoRepository` and `MongoIndexes`, and `ClaimsPrincipalExtensions`. `MatchesController` and `AuthController` still depend on the concrete `MongoRepository<T>`; moving them to `IMongoRepository<T>`, as the other controllers already are, would let them be tested the same way.
 - **Android**: 25 unit tests across `FarmApiTest`, `FormValidationTest`, `FarmViewModelTest`, `SettingsProfileTest` — this is 100% of what the current test setup (JUnit + coroutines-test + MockWebServer, no Robolectric) can reach. The Compose screens themselves (`RecordEditor`, `NearbyFilter`, `ProfileEditor`, `BiometricAction`, navigation) and `PhotoTools.prepare()` in `ListingPhoto.kt` all call real Android framework classes and would need either Compose UI tests (run on a device/emulator) or Robolectric to cover.
 
 ## Deployment and CI

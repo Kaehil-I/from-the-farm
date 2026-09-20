@@ -110,6 +110,46 @@ public class DemandsControllerTests
         Assert.IsType<NotFoundResult>(result.Result);
     }
 
+    [Fact]
+    public async Task DeleteDemand_ReturnsNotFound_WhenTheDemandDoesNotExist()
+    {
+        var repository = new FakeRepository<DemandRequest>();
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.DeleteDemand("demand-1");
+
+        Assert.IsType<NotFoundResult>(result);
+        Assert.Equal(0, repository.WriteCount);
+    }
+
+    [Fact]
+    public async Task DeleteDemand_ReturnsNotFound_NotForbidden_ForAnyCallerWhenTheDemandDoesNotExist()
+    {
+        // Existence is checked before ownership, so a missing record is a plain
+        // 404 for everyone rather than a 403 that would imply it exists.
+        var repository = new FakeRepository<DemandRequest>();
+        var controller = ControllerFor(repository, Stranger);
+
+        var result = await controller.DeleteDemand("demand-1");
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateDemand_LeavesTheOwnerAndIdUnchanged()
+    {
+        var repository = new FakeRepository<DemandRequest>(ExistingDemand());
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.UpdateDemand("demand-1", Request(cropType: "Spinach"));
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var returned = Assert.IsType<DemandRequest>(ok.Value);
+        Assert.Equal(Owner, returned.BuyerId);
+        Assert.Equal("demand-1", returned.Id);
+        Assert.Equal(Owner, repository.Documents["demand-1"].BuyerId);
+    }
+
     private static DemandRequest ExistingDemand() => new()
     {
         Id = "demand-1",

@@ -103,6 +103,46 @@ public class ListingsControllerTests
     }
 
     [Fact]
+    public async Task DeleteListing_ReturnsNotFound_WhenTheListingDoesNotExist()
+    {
+        var repository = new FakeRepository<Listing>();
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.DeleteListing("listing-1");
+
+        Assert.IsType<NotFoundResult>(result);
+        Assert.Equal(0, repository.WriteCount);
+    }
+
+    [Fact]
+    public async Task DeleteListing_ReturnsNotFound_NotForbidden_ForAnyCallerWhenTheListingDoesNotExist()
+    {
+        // Existence is checked before ownership, so a missing record is a plain
+        // 404 for everyone rather than a 403 that would imply it exists.
+        var repository = new FakeRepository<Listing>();
+        var controller = ControllerFor(repository, Stranger);
+
+        var result = await controller.DeleteListing("listing-1");
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateListing_LeavesTheOwnerAndIdUnchanged()
+    {
+        var repository = new FakeRepository<Listing>(ExistingListing());
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.UpdateListing("listing-1", Request(cropType: "Spinach"));
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var returned = Assert.IsType<Listing>(ok.Value);
+        Assert.Equal(Owner, returned.FarmerId);
+        Assert.Equal("listing-1", returned.Id);
+        Assert.Equal(Owner, repository.Documents["listing-1"].FarmerId);
+    }
+
+    [Fact]
     public async Task CreateListing_StoresThePhoto_AsADataUri()
     {
         var repository = new FakeRepository<Listing>();
