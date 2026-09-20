@@ -1,3 +1,4 @@
+using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
@@ -29,11 +30,16 @@ public class HealthController : ControllerBase
         try
         {
             await _database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1));
-            return Ok(new { status = "healthy", database = _database.DatabaseNamespace.DatabaseName });
+            return Ok(new
+            {
+                status = "healthy",
+                database = _database.DatabaseNamespace.DatabaseName,
+                commit = BuildInfo.Commit
+            });
         }
         catch (Exception ex)
         {
-            return StatusCode(503, new { status = "unhealthy", error = ex.GetType().Name });
+            return StatusCode(503, new { status = "unhealthy", error = ex.GetType().Name, commit = BuildInfo.Commit });
         }
     }
 }

@@ -13,10 +13,12 @@ namespace FromTheFarm.Api.Controllers;
 public class DemandsController : ControllerBase
 {
     private readonly IMongoRepository<DemandRequest> _demands;
+    private readonly IMongoRepository<UserProfile> _users;
 
-    public DemandsController(IMongoRepository<DemandRequest> demands)
+    public DemandsController(IMongoRepository<DemandRequest> demands, IMongoRepository<UserProfile> users)
     {
         _demands = demands;
+        _users = users;
     }
 
     public record CreateDemandRequest(
@@ -47,6 +49,13 @@ public class DemandsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<DemandRequest>> CreateDemand([FromBody] CreateDemandRequest request)
     {
+        var uid = User.GetFirebaseUid();
+        var notAllowed = RoleRequirement.Check(await _users.GetByIdAsync(uid), "Buyer", "post demand requests");
+        if (notAllowed is not null)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, notAllowed);
+        }
+
         var invalid = RequestValidation.ForDemand(
             request.CropType,
             request.QuantityNeeded,
@@ -60,7 +69,6 @@ public class DemandsController : ControllerBase
             return BadRequest(invalid);
         }
 
-        var uid = User.GetFirebaseUid();
         var demand = new DemandRequest
         {
             BuyerId = uid,
