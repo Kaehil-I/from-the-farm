@@ -59,12 +59,14 @@ builder.Services.AddSingleton(sp => new MongoRepository<DemandRequest>(sp.GetReq
 builder.Services.AddSingleton(sp => new MongoRepository<MatchDocument>(sp.GetRequiredService<IMongoDatabase>(), "Matches"));
 builder.Services.AddSingleton(sp => new MongoRepository<Rating>(sp.GetRequiredService<IMongoDatabase>(), "Ratings"));
 
-// Listings, demands and profiles resolve through the interface so their
-// controllers can be unit-tested against an in-memory double. Both
-// registrations share the one singleton instance per collection.
+// Controllers resolve repositories through the interface so they can be
+// unit-tested against an in-memory double. Both registrations share the one
+// singleton instance per collection.
 builder.Services.AddSingleton<IMongoRepository<UserProfile>>(sp => sp.GetRequiredService<MongoRepository<UserProfile>>());
 builder.Services.AddSingleton<IMongoRepository<Listing>>(sp => sp.GetRequiredService<MongoRepository<Listing>>());
 builder.Services.AddSingleton<IMongoRepository<DemandRequest>>(sp => sp.GetRequiredService<MongoRepository<DemandRequest>>());
+builder.Services.AddSingleton<IMongoRepository<MatchDocument>>(sp => sp.GetRequiredService<MongoRepository<MatchDocument>>());
+builder.Services.AddSingleton<IMongoRepository<Rating>>(sp => sp.GetRequiredService<MongoRepository<Rating>>());
 
 builder.Services.AddSingleton<MatchingService>();
 

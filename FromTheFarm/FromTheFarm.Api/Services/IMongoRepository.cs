@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using MongoDB.Driver;
 
 namespace FromTheFarm.Api.Services;
@@ -15,4 +16,11 @@ public interface IMongoRepository<T> where T : class, IDocument
     Task<T> UpsertAsync(T item);
 
     Task DeleteAsync(string id);
+
+    // Filtered reads that the match feed and the one-rating-per-user check need.
+    // They take an expression rather than exposing Collection so an in-memory
+    // double can evaluate the same predicate the driver translates for Mongo.
+    Task<List<T>> FindAsync(Expression<Func<T, bool>> filter);
+
+    Task<bool> AnyAsync(Expression<Func<T, bool>> filter);
 }

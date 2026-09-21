@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Security.Claims;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Http;
@@ -46,18 +47,35 @@ internal sealed class FakeRepository<T> : IMongoRepository<T> where T : class, I
         _documents.Remove(id);
         return Task.CompletedTask;
     }
+
+    // The driver translates these expressions into a Mongo filter; here the same
+    // predicate is simply compiled and run over the in-memory documents.
+    public Task<List<T>> FindAsync(Expression<Func<T, bool>> filter) =>
+        Task.FromResult(_documents.Values.Where(filter.Compile()).ToList());
+
+    public Task<bool> AnyAsync(Expression<Func<T, bool>> filter) =>
+        Task.FromResult(_documents.Values.Any(filter.Compile()));
 }
 
 internal static class SignedInAs
 {
     // Firebase puts the UID in the "sub" claim, which ASP.NET surfaces as
     // NameIdentifier — the same thing ClaimsPrincipalExtensions reads.
-    public static ControllerContext User(string uid) => new()
+    public static ControllerContext User(string uid, string? name = null)
     {
-        HttpContext = new DefaultHttpContext
+        var claims = new List<Claim> { new(ClaimTypes.NameIdentifier, uid) };
+        if (name is not null)
         {
-            User = new ClaimsPrincipal(
-                new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, uid) }, "TestAuth"))
+            // Firebase ID tokens carry the Google display name in the "name" claim.
+            claims.Add(new Claim("name", name));
         }
-    };
+
+        return new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"))
+            }
+        };
+    }
 }

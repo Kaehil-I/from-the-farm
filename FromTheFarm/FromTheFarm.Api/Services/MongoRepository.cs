@@ -1,11 +1,13 @@
+using System.Linq.Expressions;
 using MongoDB.Driver;
 
 namespace FromTheFarm.Api.Services;
 
 // Thin generic wrapper over a single Mongo collection, kept deliberately simple:
 // no unit of work, no specification pattern. Each collection has genuinely
-// different access patterns, so controllers query LINQ directly against
-// Collection rather than hiding it behind an over-abstracted interface.
+// different access patterns, so the by-id operations and two filtered reads live
+// here and anything more bespoke (the browse endpoints' optional filters) still
+// builds its query on Collection.
 //
 // Two things worth knowing:
 //   - There is no partition-key concept, so these methods take an id alone.
@@ -34,6 +36,16 @@ public class MongoRepository<T> : IMongoRepository<T> where T : class, IDocument
         var filter = Builders<T>.Filter.Eq(x => x.Id, item.Id);
         await _collection.ReplaceOneAsync(filter, item, new ReplaceOptions { IsUpsert = true });
         return item;
+    }
+
+    public async Task<List<T>> FindAsync(Expression<Func<T, bool>> filter)
+    {
+        return await _collection.Find(filter).ToListAsync();
+    }
+
+    public async Task<bool> AnyAsync(Expression<Func<T, bool>> filter)
+    {
+        return await _collection.Find(filter).Limit(1).AnyAsync();
     }
 
     public async Task DeleteAsync(string id)
