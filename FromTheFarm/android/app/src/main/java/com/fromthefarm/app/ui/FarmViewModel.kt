@@ -151,6 +151,9 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
         if (id == null) repository.api.createDemand(repository.token(), body)
         else repository.api.updateDemand(repository.token(), id, body)
         mutable.value = mutable.value.copy(loaded = false)
+        load()
+        mutable.value = mutable.value.copy(message = if (id == null)
+            "Demand posted. Relevant produce is ready on Home." else "Demand updated. Relevant produce has been refreshed.")
         done()
     }
     fun delete(id: String, demand: Boolean) = action {

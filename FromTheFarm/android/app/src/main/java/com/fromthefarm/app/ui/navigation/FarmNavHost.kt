@@ -152,9 +152,11 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
                 if (tab != "Settings") TextButton(enabled = !state.busy, onClick = vm::refresh) { Text("Refresh") }
                 when (tab) {
                     "Home" -> {
-                        Text("Your matches", style = MaterialTheme.typography.titleLarge)
-                        Text("Ranked by crop, distance, quantity and harvest timing.")
-                        if (state.loaded && state.error == null && state.matches.isEmpty()) Text("No matches yet. Add a listing or demand request, then refresh.")
+                        Text(if (farmer) "Your matches" else "Produce matching your demands", style = MaterialTheme.typography.titleLarge)
+                        Text(if (farmer) "Ranked by crop, distance, quantity and harvest timing."
+                            else "Listings are selected from your demand requests and ranked by crop, distance, quantity and harvest timing.")
+                        if (state.loaded && state.error == null && state.matches.isEmpty()) Text(if (farmer)
+                            "No matches yet. Add a listing, then refresh." else "No relevant produce yet. Post a demand request or check again later.")
                         state.matches.forEach { item ->
                             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                                 Text(item.counterpart.cropType, style = MaterialTheme.typography.titleMedium)

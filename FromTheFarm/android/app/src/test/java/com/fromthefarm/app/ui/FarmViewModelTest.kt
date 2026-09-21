@@ -74,6 +74,24 @@ class FarmViewModelTest {
         assertNotNull(vm.state.value.error)
     }
 
+    @Test fun savingDemandImmediatelyRefreshesRelevantMatchesForHome() = runTest(dispatcher) {
+        val source = FakeSource()
+        val vm = FarmViewModel(source)
+        advanceUntilIdle()
+        source.backend.matchStatus = "Suggested"
+        source.backend.returnMatch = true
+        var closed = false
+
+        vm.saveDemand(null, DemandWrite("Tomatoes", 10.0, "kg", "2026-09-30", source.backend.listing.location)) { closed = true }
+        advanceUntilIdle()
+
+        assertTrue(closed)
+        assertTrue(vm.state.value.loaded)
+        assertEquals(1, vm.state.value.matches.size)
+        assertEquals("Tomatoes", vm.state.value.matches.single().counterpart.cropType)
+        assertTrue(vm.state.value.message!!.contains("Relevant produce"))
+    }
+
     @Test fun logoutClearsDataEvenIfProviderCleanupFails() = runTest(dispatcher) {
         val source = FakeSource()
         val vm = FarmViewModel(source)
@@ -200,6 +218,7 @@ class FarmViewModelTest {
         var matchFailure = false
         var writeFailure = false
         var matchStatus = "Suggested"
+        var returnMatch = false
         var ratings = 0
         var completions = 0
         var sessionFailure = false
@@ -218,7 +237,10 @@ class FarmViewModelTest {
         override suspend fun listings(token: String, mine: Boolean): List<Listing> { authorize(); return listOf(listing) }
         override suspend fun browseListings(token: String, crop: String?, radius: Int, latitude: Double, longitude: Double) = listOf(listing)
         override suspend fun demands(token: String, mine: Boolean) = listOf(demand)
-        override suspend fun matches(token: String): List<Match> { if (matchFailure) error("unavailable"); return emptyList() }
+        override suspend fun matches(token: String): List<Match> {
+            if (matchFailure) error("unavailable")
+            return if (returnMatch) listOf(Match("m1", .8, Counterpart("Tomatoes", 12.5, "kg", 1.2, "2026-09-16"), matchStatus)) else emptyList()
+        }
         override suspend fun createListing(token: String, body: ListingWrite): Listing { writes++; if (writeFailure) error("write failed"); return listing }
         override suspend fun updateListing(token: String, id: String, body: ListingWrite) = listing
         override suspend fun deleteListing(token: String, id: String) = Unit
