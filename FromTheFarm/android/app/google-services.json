@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "127729053039-th54aqaq1t72c01i5elus87tvtosoehn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fromthefarm.app",
+            "certificate_hash": "d541aabdda436048cd911cbf5aed2029e7ea40af"
+          }
+        },
+        {
           "client_id": "127729053039-qq6pen3t2v2t5l7hkf89mohlfuru6rlq.apps.googleusercontent.com",
           "client_type": 3
         }

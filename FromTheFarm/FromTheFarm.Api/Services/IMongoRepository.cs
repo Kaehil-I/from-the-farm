@@ -7,8 +7,14 @@ namespace FromTheFarm.Api.Services;
 // in-memory double rather than a live cluster. MongoRepository<T> is the only
 // production implementation; this exists for testability, not to support a
 // second storage backend.
+//
+// The constraint on T is what lets the implementation build an _id filter for
+// any model without reflection: IDocument guarantees a settable Id.
 public interface IMongoRepository<T> where T : class, IDocument
 {
+    // Exposed for the queries that do not fit the methods below, such as the
+    // browse endpoints' optional filters. An in-memory double has no meaningful
+    // equivalent, so anything reaching for this cannot be unit tested.
     IMongoCollection<T> Collection { get; }
 
     Task<T?> GetByIdAsync(string id);

@@ -18,12 +18,17 @@ public static class RequestValidation
 
     // Base64 inflates by roughly a third and a Mongo document is capped at
     // 16MB, so a 3MB image leaves ample room for the rest of the document.
+    // Reference: https://www.mongodb.com/docs/manual/reference/limits/
     public const int MaxPhotoBytes = 3 * 1024 * 1024;
 
     public static readonly IReadOnlyList<string> AllowedRoles = new[] { "Farmer", "Buyer" };
     public static readonly IReadOnlyList<string> AllowedLanguages = new[] { "en", "zu", "af" };
 
     private static readonly Regex PhoneFormat = new(@"^[+0-9 ()-]{7,25}$", RegexOptions.Compiled);
+
+    // ---- Field-level checks. Each returns an error message, or null when the
+    // value is acceptable, so callers can chain them with ?? and surface the
+    // first problem found. ----
 
     public static string? CropType(string? value) =>
         string.IsNullOrWhiteSpace(value)
@@ -140,6 +145,9 @@ public static class RequestValidation
         return null;
     }
 
+    // ---- Composite checks. One call per endpoint, ordered so the message a
+    // caller receives names the first field that is wrong. ----
+
     public static string? ForListing(string? cropType, decimal quantity, string? unit, GeoLocation? location) =>
         CropType(cropType)
         ?? Quantity(quantity, "quantity")
@@ -159,6 +167,9 @@ public static class RequestValidation
         ?? Location(location)
         ?? Deadline(deadline, today);
 
+    // Identifies the format from the file's magic bytes rather than trusting a
+    // client-supplied media type, which is what stops a renamed file being
+    // stored as though it were an image.
     private static string? MediaTypeFor(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF)

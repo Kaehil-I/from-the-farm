@@ -14,6 +14,7 @@ namespace FromTheFarm.Api.Services;
 //   - Mongo creates a collection on first write, so there is no
 //     CreateContainerIfNotExists equivalent and no blocking I/O in the
 //     constructor.
+// Reference: https://www.mongodb.com/docs/drivers/csharp/current/crud/
 public class MongoRepository<T> : IMongoRepository<T> where T : class, IDocument
 {
     private readonly IMongoCollection<T> _collection;
@@ -31,6 +32,10 @@ public class MongoRepository<T> : IMongoRepository<T> where T : class, IDocument
         return await _collection.Find(filter).FirstOrDefaultAsync();
     }
 
+    // One method covers both create and update: ReplaceOne with IsUpsert inserts
+    // when no document matches the id and replaces the whole document when one
+    // does. Callers therefore read, mutate and save, and never have to know
+    // which of the two happened.
     public async Task<T> UpsertAsync(T item)
     {
         var filter = Builders<T>.Filter.Eq(x => x.Id, item.Id);
@@ -43,6 +48,8 @@ public class MongoRepository<T> : IMongoRepository<T> where T : class, IDocument
         return await _collection.Find(filter).ToListAsync();
     }
 
+    // Limit(1) so the server stops at the first match — this backs the
+    // has-this-user-already-rated check, where only existence matters.
     public async Task<bool> AnyAsync(Expression<Func<T, bool>> filter)
     {
         return await _collection.Find(filter).Limit(1).AnyAsync();

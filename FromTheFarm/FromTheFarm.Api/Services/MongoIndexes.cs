@@ -56,7 +56,9 @@ public static class MongoIndexes
 
         // Enforces one rating per user per match in the database itself. The
         // duplicate check in MatchesController races under concurrent requests;
-        // a unique index does not.
+        // a unique index does not. A second insert for the same pair fails at the
+        // driver with a duplicate-key write error rather than silently succeeding.
+        // Reference: https://www.mongodb.com/docs/manual/core/index-unique/create-compound/
         var ratings = database.GetCollection<Rating>("Ratings");
         await ratings.Indexes.CreateOneAsync(
             new CreateIndexModel<Rating>(

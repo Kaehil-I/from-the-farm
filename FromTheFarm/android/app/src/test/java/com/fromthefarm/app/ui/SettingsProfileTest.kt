@@ -17,8 +17,16 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsProfileTest {
+    // StandardTestDispatcher queues coroutines instead of running them eagerly,
+    // so nothing the view model launches executes until advanceUntilIdle() is
+    // called. That makes each assertion run at a known point rather than racing
+    // the work it is checking.
+    // Reference: https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-test/kotlinx.coroutines.test/-standard-test-dispatcher.html
     private val dispatcher = StandardTestDispatcher()
 
+    // The view model launches on Dispatchers.Main, which has no implementation
+    // in a JVM unit test, so it is swapped for the test dispatcher and reset
+    // afterwards to keep the tests independent of each other.
     @Before fun setup() { Dispatchers.setMain(dispatcher) }
     @After fun cleanup() { Dispatchers.resetMain() }
 
