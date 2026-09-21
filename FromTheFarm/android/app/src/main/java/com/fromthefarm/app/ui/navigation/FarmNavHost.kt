@@ -22,6 +22,8 @@ import com.fromthefarm.app.ui.screens.NearbyFilter
 import com.fromthefarm.app.ui.screens.ListingPhoto
 import com.fromthefarm.app.ui.screens.BiometricAction
 import kotlin.math.roundToInt
+import java.time.Instant
+import java.time.ZoneOffset
 
 /** Authenticated shell. The Part 1 sample screens are retained for design previews only. */
 @Composable
@@ -152,11 +154,24 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
                 if (tab != "Settings") TextButton(enabled = !state.busy, onClick = vm::refresh) { Text("Refresh") }
                 when (tab) {
                     "Home" -> {
-                        Text(if (farmer) "Your matches" else "Produce matching your demands", style = MaterialTheme.typography.titleLarge)
+                        Text(if (farmer) "Your matches" else "Products matching your demands", style = MaterialTheme.typography.titleLarge)
                         Text(if (farmer) "Ranked by crop, distance, quantity and harvest timing."
-                            else "Listings are selected from your demand requests and ranked by crop, distance, quantity and harvest timing.")
-                        if (state.loaded && state.error == null && state.matches.isEmpty()) Text(if (farmer)
-                            "No matches yet. Add a listing, then refresh." else "No relevant produce yet. Post a demand request or check again later.")
+                            else "Products matching an open demand appear first, regardless of capitalization.")
+                        if (farmer && state.loaded && state.error == null && state.matches.isEmpty()) Text("No matches yet. Add a listing, then refresh.")
+                        if (!farmer) {
+                            val recommendations = BuyerRecommendations.find(state.listings, state.demands)
+                            if (state.loaded && recommendations.isEmpty()) Text("No available products currently match the crop name of an open demand.")
+                            recommendations.forEach { RecommendedListingCard(it) }
+                            val nearby = BuyerRecommendations.nearby(state.listings, state.demands, profile.searchRadiusKm,
+                                recommendations.mapTo(mutableSetOf()) { it.listing.id })
+                            Text("Other products within ${profile.searchRadiusKm} km", style = MaterialTheme.typography.titleLarge)
+                            if (state.loaded && state.demands.none { it.status == "Open" })
+                                Text("Create an open demand to use its location for nearby products.")
+                            else if (state.loaded && nearby.isEmpty())
+                                Text("No other products are available within your configured range.")
+                            nearby.forEach { NearbyBuyerListingCard(it) }
+                            if (state.matches.isNotEmpty()) Text("Your active matches", style = MaterialTheme.typography.titleLarge)
+                        }
                         state.matches.forEach { item ->
                             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                                 Text(item.counterpart.cropType, style = MaterialTheme.typography.titleMedium)
@@ -184,8 +199,14 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
                             state.demands.forEach { item -> RecordCard(item.cropType, "${item.quantityNeeded} ${item.unit} · ${item.deadline} · ${item.status}", state.busy,
                                 { editingId = item.id; editor = "demand" }, { deleteId = item.id }) }
                             Text("Available produce", style = MaterialTheme.typography.titleLarge)
+                            state.listings.forEach { item -> BrowseListingCard(item, state.busy) {
+                                editingId = null; demandSeedCrop = item.cropType; editor = "demand"
+                            } }
+                            Text("Find nearby produce", style = MaterialTheme.typography.titleLarge)
                             NearbyFilter(profile.searchRadiusKm, state.busy, vm::browse)
-                            state.listings.forEach { item ->
+                            if (state.nearbySearchPerformed) Text("Nearby results", style = MaterialTheme.typography.titleLarge)
+                            if (state.nearbySearchPerformed && state.nearbyListings.isEmpty()) Text("No active produce listings were found for this crop and location. Try a larger radius or another crop.")
+                            state.nearbyListings.forEach { item ->
                                 BrowseListingCard(item, state.busy) {
                                     editingId = null; demandSeedCrop = item.cropType; editor = "demand"
                                 }
@@ -193,12 +214,7 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
                         }
                     }
                     "Calendar" -> {
-                        Text("Harvest dates", style = MaterialTheme.typography.titleLarge)
-                        if (state.loaded && state.error == null && state.listings.isEmpty()) Text("No harvests to show.")
-                        state.listings.groupBy { it.harvestDate }.toSortedMap().forEach { (date, items) ->
-                            Text(date, style = MaterialTheme.typography.titleMedium)
-                            items.forEach { Text("${it.cropType} · ${it.quantity} ${it.unit}") }
-                        }
+                        HarvestCalendar(state.listings)
                     }
                     "Settings" -> {
                         ProfileEditor(profile, state.busy, false, vm::saveProfile)
@@ -245,5 +261,50 @@ private fun BrowseListingCard(item: Listing, busy: Boolean, openDemand: () -> Un
             Text(item.cropType, style = MaterialTheme.typography.titleMedium)
             Text("${item.quantity} ${item.unit} · ${item.harvestDate}")
         }
+    }
+}
+
+@Composable
+private fun RecommendedListingCard(item: BuyerRecommendation) {
+    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        ListingPhoto(item.listing.photoUrl)
+        Text(item.listing.cropType, style = MaterialTheme.typography.titleMedium)
+        Text("Available: ${item.listing.quantity} ${item.listing.unit}")
+        Text("Harvest date: ${item.listing.harvestDate}")
+        Text("${"%.1f".format(item.distanceKm)} km from your demand location")
+        Text("Matches your request for ${item.demand.quantityNeeded} ${item.demand.unit} by ${item.demand.deadline}",
+            style = MaterialTheme.typography.bodySmall)
+    } }
+}
+
+@Composable
+private fun NearbyBuyerListingCard(item: NearbyBuyerListing) {
+    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        ListingPhoto(item.listing.photoUrl)
+        Text(item.listing.cropType, style = MaterialTheme.typography.titleMedium)
+        Text("Available: ${item.listing.quantity} ${item.listing.unit}")
+        Text("Harvest date: ${item.listing.harvestDate}")
+        Text("${"%.1f".format(item.distanceKm)} km away")
+    } }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HarvestCalendar(listings: List<Listing>) {
+    val calendar = rememberDatePickerState()
+    Text("Harvest calendar", style = MaterialTheme.typography.titleLarge)
+    Text("Select a date to see produce available on that day.")
+    DatePicker(state = calendar, showModeToggle = false)
+    val selectedDate = calendar.selectedDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString() }
+    if (selectedDate == null) Text("Select a date on the calendar.")
+    else {
+        Text(selectedDate, style = MaterialTheme.typography.titleMedium)
+        val dayListings = listings.filter { it.harvestDate == selectedDate }
+        if (dayListings.isEmpty()) Text("No produce is scheduled for this date.")
+        dayListings.forEach { item -> Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+            ListingPhoto(item.photoUrl)
+            Text(item.cropType, style = MaterialTheme.typography.titleMedium)
+            Text("${item.quantity} ${item.unit} · ${item.status}")
+        } } }
     }
 }

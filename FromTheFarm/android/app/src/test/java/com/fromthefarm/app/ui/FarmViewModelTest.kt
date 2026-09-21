@@ -92,6 +92,21 @@ class FarmViewModelTest {
         assertTrue(vm.state.value.message!!.contains("Relevant produce"))
     }
 
+    @Test fun nearbySearchDoesNotReplaceProductsUsedByHomeAndCalendar() = runTest(dispatcher) {
+        val source = FakeSource()
+        val vm = FarmViewModel(source)
+        advanceUntilIdle()
+        vm.refresh(); advanceUntilIdle()
+        val catalogue = vm.state.value.listings
+
+        vm.browse("POTATOES", 25, source.backend.listing.location)
+        advanceUntilIdle()
+
+        assertEquals(catalogue, vm.state.value.listings)
+        assertTrue(vm.state.value.nearbySearchPerformed)
+        assertEquals(listOf("Potatoes"), vm.state.value.nearbyListings.map { it.cropType })
+    }
+
     @Test fun logoutClearsDataEvenIfProviderCleanupFails() = runTest(dispatcher) {
         val source = FakeSource()
         val vm = FarmViewModel(source)
@@ -235,7 +250,8 @@ class FarmViewModelTest {
         override suspend fun profile(token: String): Profile { authorize(); return user }
         override suspend fun profile(token: String, body: ProfileUpdate) = user.copy(role = body.role)
         override suspend fun listings(token: String, mine: Boolean): List<Listing> { authorize(); return listOf(listing) }
-        override suspend fun browseListings(token: String, crop: String?, radius: Int, latitude: Double, longitude: Double) = listOf(listing)
+        override suspend fun browseListings(token: String, crop: String?, radius: Int, latitude: Double, longitude: Double) =
+            listOf(listing, listing.copy(id = "l2", cropType = "Potatoes"))
         override suspend fun demands(token: String, mine: Boolean) = listOf(demand)
         override suspend fun matches(token: String): List<Match> {
             if (matchFailure) error("unavailable")

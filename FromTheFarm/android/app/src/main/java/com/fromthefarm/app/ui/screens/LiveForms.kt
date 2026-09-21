@@ -74,7 +74,7 @@ fun RecordEditor(demand: Boolean, id: String?, listing: Listing?, request: Deman
         if (error == null) {
             val photo = runCatching { photoPath?.let { android.util.Base64.encodeToString(File(it).readBytes(), android.util.Base64.NO_WRAP) } }
             if (photo.isFailure) error = "Select your photo again before saving."
-            else onSave(crop.trim(), quantity.trim().toDouble(), unit.trim(), date.trim(), Location(latitude.trim().toDouble(), longitude.trim().toDouble()), photo.getOrNull())
+            else onSave(CropNames.normalize(crop), quantity.trim().toDouble(), unit.trim(), date.trim(), Location(latitude.trim().toDouble(), longitude.trim().toDouble()), photo.getOrNull())
         }
     }) { Text(if (busy) "Saving…" else "Save") }
     if (showDatePicker) {
@@ -105,7 +105,7 @@ fun NearbyFilter(radius: Int, busy: Boolean, search: (String?, Int, Location) ->
         val lon = longitude.trim().toDoubleOrNull()
         error = if (lat == null || !lat.isFinite() || lat !in -90.0..90.0 || lon == null || !lon.isFinite() || lon !in -180.0..180.0)
             "Enter valid latitude and longitude for the search location." else null
-        if (error == null) search(crop.trim().ifBlank { null }, radius, Location(lat!!, lon!!))
+        if (error == null) search(crop.takeIf { it.isNotBlank() }?.let(CropNames::normalize), radius, Location(lat!!, lon!!))
     }) { Text("Find nearby produce") }
 }
 
