@@ -20,9 +20,9 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 data class FarmState(val busy: Boolean = false, val error: String? = null, val message: String? = null,
     val firebaseSignedIn: Boolean = false,
     val biometricLocked: Boolean = false, val biometricEnabled: Boolean = false,
-    val profile: Profile? = null, val listings: List<Listing> = emptyList(), val demands: List<Demand> = emptyList(),
+    val profile: Profile? = null, val listings: List<Listing> = emptyList(), val nearbyListings: List<Listing> = emptyList(), val demands: List<Demand> = emptyList(),
     val matches: List<Match> = emptyList(), val detail: MatchDetail? = null, val loaded: Boolean = false,
-    val ratedMatches: Set<String> = emptySet())
+    val ratedMatches: Set<String> = emptySet(), val nearbySearchPerformed: Boolean = false)
 
 class FarmViewModel(private val repository: FarmDataSource, private val log: (String) -> Unit = {}) : ViewModel() {
     companion object {
@@ -133,13 +133,19 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
         val listings = fetch("listings", mutable.value.listings) { repository.api.listings(repository.token(), farmer) }
         val demands = fetch("demand requests", mutable.value.demands) { repository.api.demands(repository.token()) }
         val matches = fetch("matches", mutable.value.matches) { repository.api.matches(repository.token()).sortedByDescending { it.score } }
-        mutable.value = mutable.value.copy(listings = listings, demands = demands, matches = matches, loaded = true,
+        mutable.value = mutable.value.copy(listings = listings, nearbyListings = emptyList(), demands = demands, matches = matches,
+            loaded = true, nearbySearchPerformed = false,
             error = failures.takeIf { it.isNotEmpty() }?.let { "Could not refresh ${it.joinToString()}. Previously loaded data may be out of date. Retry with Refresh." })
     }
     fun refresh() = action { load() }
     fun browse(crop: String?, radius: Int, location: Location) = action {
-        val listings = repository.api.browseListings(repository.token(), crop, radius, location.latitude, location.longitude)
-        mutable.value = mutable.value.copy(listings = listings, message = "Showing produce within $radius km.")
+        // The deployed Mongo query compares crop text exactly. Fetch the already
+        // distance-filtered result set and apply the optional crop filter here so
+        // Tomatoes, tomatoes and TOMATOES are treated as the same product.
+        val nearby = repository.api.browseListings(repository.token(), null, radius, location.latitude, location.longitude)
+        val listings = crop?.let { wanted -> nearby.filter { it.cropType.equals(wanted, ignoreCase = true) } } ?: nearby
+        mutable.value = mutable.value.copy(nearbyListings = listings, nearbySearchPerformed = true,
+            message = if (listings.isEmpty()) "No produce found within $radius km." else "Found ${listings.size} product${if (listings.size == 1) "" else "s"} within $radius km.")
     }
     fun saveListing(id: String?, body: ListingWrite, done: () -> Unit) = action {
         if (id == null) repository.api.createListing(repository.token(), body)
@@ -151,6 +157,9 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
         if (id == null) repository.api.createDemand(repository.token(), body)
         else repository.api.updateDemand(repository.token(), id, body)
         mutable.value = mutable.value.copy(loaded = false)
+        load()
+        mutable.value = mutable.value.copy(message = if (id == null)
+            "Demand posted. Relevant produce is ready on Home." else "Demand updated. Relevant produce has been refreshed.")
         done()
     }
     fun delete(id: String, demand: Boolean) = action {
