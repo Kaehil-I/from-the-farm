@@ -103,6 +103,46 @@ public class ListingsControllerTests
     }
 
     [Fact]
+    public async Task DeleteListing_ReturnsNotFound_WhenTheListingDoesNotExist()
+    {
+        var repository = new FakeRepository<Listing>();
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.DeleteListing("listing-1");
+
+        Assert.IsType<NotFoundResult>(result);
+        Assert.Equal(0, repository.WriteCount);
+    }
+
+    [Fact]
+    public async Task DeleteListing_ReturnsNotFound_NotForbidden_ForAnyCallerWhenTheListingDoesNotExist()
+    {
+        // Existence is checked before ownership, so a missing record is a plain
+        // 404 for everyone rather than a 403 that would imply it exists.
+        var repository = new FakeRepository<Listing>();
+        var controller = ControllerFor(repository, Stranger);
+
+        var result = await controller.DeleteListing("listing-1");
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateListing_LeavesTheOwnerAndIdUnchanged()
+    {
+        var repository = new FakeRepository<Listing>(ExistingListing());
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.UpdateListing("listing-1", Request(cropType: "Spinach"));
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var returned = Assert.IsType<Listing>(ok.Value);
+        Assert.Equal(Owner, returned.FarmerId);
+        Assert.Equal("listing-1", returned.Id);
+        Assert.Equal(Owner, repository.Documents["listing-1"].FarmerId);
+    }
+
+    [Fact]
     public async Task CreateListing_StoresThePhoto_AsADataUri()
     {
         var repository = new FakeRepository<Listing>();
@@ -181,8 +221,72 @@ public class ListingsControllerTests
         Status = "Active"
     };
 
-    private static ListingsController ControllerFor(FakeRepository<Listing> repository, string uid) =>
-        new(repository) { ControllerContext = SignedInAs.User(uid) };
+    [Theory]
+    [InlineData("Buyer")]
+    [InlineData(null)]
+    public async Task CreateListing_IsRefused_ForACallerWhoIsNotAFarmer(string? role)
+    {
+        var repository = new FakeRepository<Listing>();
+        var controller = ControllerFor(repository, Owner, Profile(Owner, role));
+
+        var result = await controller.CreateListing(Request());
+
+        var refused = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(403, refused.StatusCode);
+        Assert.Equal(0, repository.WriteCount);
+    }
+
+    [Fact]
+    public async Task CreateListing_IsRefused_WhenTheCallerHasNoProfileAtAll()
+    {
+        var repository = new FakeRepository<Listing>();
+        var controller = new ListingsController(repository, new FakeRepository<UserProfile>())
+        {
+            ControllerContext = SignedInAs.User(Owner)
+        };
+
+        var result = await controller.CreateListing(Request());
+
+        Assert.Equal(403, Assert.IsType<ObjectResult>(result.Result).StatusCode);
+        Assert.Equal(0, repository.WriteCount);
+    }
+
+    [Fact]
+    public async Task CreateListing_ChecksTheRoleBeforeValidatingTheRequest()
+    {
+        // A buyer sending garbage is told they may not do this, not that the
+        // garbage is invalid — the response must not reveal what a valid one is.
+        var repository = new FakeRepository<Listing>();
+        var controller = ControllerFor(repository, Owner, Profile(Owner, "Buyer"));
+
+        var result = await controller.CreateListing(Request(quantity: 0));
+
+        Assert.Equal(403, Assert.IsType<ObjectResult>(result.Result).StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateListing_IsAllowed_ForAFarmer()
+    {
+        var repository = new FakeRepository<Listing>();
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.CreateListing(Request());
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        Assert.Equal(1, repository.WriteCount);
+    }
+
+    private static UserProfile Profile(string uid, string? role) =>
+        new() { Id = uid, UserId = uid, Role = role };
+
+    // Callers are farmers unless a test says otherwise, so the existing ownership
+    // and validation tests exercise the paths they were written for.
+    private static ListingsController ControllerFor(
+        FakeRepository<Listing> repository, string uid, UserProfile? profile = null) =>
+        new(repository, new FakeRepository<UserProfile>(profile ?? Profile(uid, "Farmer")))
+        {
+            ControllerContext = SignedInAs.User(uid)
+        };
 
     private static ListingsController.CreateListingRequest Request(
         string cropType = "Tomatoes",

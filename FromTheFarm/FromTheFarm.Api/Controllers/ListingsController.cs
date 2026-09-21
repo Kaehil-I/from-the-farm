@@ -13,10 +13,12 @@ namespace FromTheFarm.Api.Controllers;
 public class ListingsController : ControllerBase
 {
     private readonly IMongoRepository<Listing> _listings;
+    private readonly IMongoRepository<UserProfile> _users;
 
-    public ListingsController(IMongoRepository<Listing> listings)
+    public ListingsController(IMongoRepository<Listing> listings, IMongoRepository<UserProfile> users)
     {
         _listings = listings;
+        _users = users;
     }
 
     public record CreateListingRequest(
@@ -64,6 +66,15 @@ public class ListingsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Listing>> CreateListing([FromBody] CreateListingRequest request)
     {
+        // Authorisation comes before validation: a caller who may not create a
+        // listing at all should not learn anything about what a valid one looks like.
+        var uid = User.GetFirebaseUid();
+        var notAllowed = RoleRequirement.Check(await _users.GetByIdAsync(uid), "Farmer", "create listings");
+        if (notAllowed is not null)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, notAllowed);
+        }
+
         var invalid = RequestValidation.ForListing(request.CropType, request.Quantity, request.Unit, request.Location);
         if (invalid is not null)
         {
@@ -76,7 +87,6 @@ public class ListingsController : ControllerBase
             return BadRequest(photoError);
         }
 
-        var uid = User.GetFirebaseUid();
         var listing = new Listing
         {
             FarmerId = uid,

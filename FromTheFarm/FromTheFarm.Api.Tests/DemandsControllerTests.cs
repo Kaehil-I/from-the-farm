@@ -110,6 +110,46 @@ public class DemandsControllerTests
         Assert.IsType<NotFoundResult>(result.Result);
     }
 
+    [Fact]
+    public async Task DeleteDemand_ReturnsNotFound_WhenTheDemandDoesNotExist()
+    {
+        var repository = new FakeRepository<DemandRequest>();
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.DeleteDemand("demand-1");
+
+        Assert.IsType<NotFoundResult>(result);
+        Assert.Equal(0, repository.WriteCount);
+    }
+
+    [Fact]
+    public async Task DeleteDemand_ReturnsNotFound_NotForbidden_ForAnyCallerWhenTheDemandDoesNotExist()
+    {
+        // Existence is checked before ownership, so a missing record is a plain
+        // 404 for everyone rather than a 403 that would imply it exists.
+        var repository = new FakeRepository<DemandRequest>();
+        var controller = ControllerFor(repository, Stranger);
+
+        var result = await controller.DeleteDemand("demand-1");
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateDemand_LeavesTheOwnerAndIdUnchanged()
+    {
+        var repository = new FakeRepository<DemandRequest>(ExistingDemand());
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.UpdateDemand("demand-1", Request(cropType: "Spinach"));
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var returned = Assert.IsType<DemandRequest>(ok.Value);
+        Assert.Equal(Owner, returned.BuyerId);
+        Assert.Equal("demand-1", returned.Id);
+        Assert.Equal(Owner, repository.Documents["demand-1"].BuyerId);
+    }
+
     private static DemandRequest ExistingDemand() => new()
     {
         Id = "demand-1",
@@ -122,8 +162,70 @@ public class DemandsControllerTests
         Status = "Open"
     };
 
-    private static DemandsController ControllerFor(FakeRepository<DemandRequest> repository, string uid) =>
-        new(repository) { ControllerContext = SignedInAs.User(uid) };
+    [Theory]
+    [InlineData("Farmer")]
+    [InlineData(null)]
+    public async Task CreateDemand_IsRefused_ForACallerWhoIsNotABuyer(string? role)
+    {
+        var repository = new FakeRepository<DemandRequest>();
+        var controller = ControllerFor(repository, Owner, Profile(Owner, role));
+
+        var result = await controller.CreateDemand(Request());
+
+        var refused = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(403, refused.StatusCode);
+        Assert.Equal(0, repository.WriteCount);
+    }
+
+    [Fact]
+    public async Task CreateDemand_IsRefused_WhenTheCallerHasNoProfileAtAll()
+    {
+        var repository = new FakeRepository<DemandRequest>();
+        var controller = new DemandsController(repository, new FakeRepository<UserProfile>())
+        {
+            ControllerContext = SignedInAs.User(Owner)
+        };
+
+        var result = await controller.CreateDemand(Request());
+
+        Assert.Equal(403, Assert.IsType<ObjectResult>(result.Result).StatusCode);
+        Assert.Equal(0, repository.WriteCount);
+    }
+
+    [Fact]
+    public async Task CreateDemand_ChecksTheRoleBeforeValidatingTheRequest()
+    {
+        var repository = new FakeRepository<DemandRequest>();
+        var controller = ControllerFor(repository, Owner, Profile(Owner, "Farmer"));
+
+        var result = await controller.CreateDemand(Request(deadline: new DateOnly(2020, 1, 1)));
+
+        Assert.Equal(403, Assert.IsType<ObjectResult>(result.Result).StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateDemand_IsAllowed_ForABuyer()
+    {
+        var repository = new FakeRepository<DemandRequest>();
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.CreateDemand(Request());
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        Assert.Equal(1, repository.WriteCount);
+    }
+
+    private static UserProfile Profile(string uid, string? role) =>
+        new() { Id = uid, UserId = uid, Role = role };
+
+    // Callers are buyers unless a test says otherwise, so the existing ownership
+    // and validation tests exercise the paths they were written for.
+    private static DemandsController ControllerFor(
+        FakeRepository<DemandRequest> repository, string uid, UserProfile? profile = null) =>
+        new(repository, new FakeRepository<UserProfile>(profile ?? Profile(uid, "Buyer")))
+        {
+            ControllerContext = SignedInAs.User(uid)
+        };
 
     private static DemandsController.CreateDemandRequest Request(
         string cropType = "Tomatoes",

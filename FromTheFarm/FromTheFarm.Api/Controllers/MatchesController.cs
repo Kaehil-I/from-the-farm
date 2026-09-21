@@ -2,8 +2,6 @@ using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 
 namespace FromTheFarm.Api.Controllers;
 
@@ -12,17 +10,17 @@ namespace FromTheFarm.Api.Controllers;
 [Authorize]
 public class MatchesController : ControllerBase
 {
-    private readonly MongoRepository<UserProfile> _users;
-    private readonly MongoRepository<Listing> _listings;
-    private readonly MongoRepository<DemandRequest> _demands;
-    private readonly MongoRepository<MatchDocument> _matches;
+    private readonly IMongoRepository<UserProfile> _users;
+    private readonly IMongoRepository<Listing> _listings;
+    private readonly IMongoRepository<DemandRequest> _demands;
+    private readonly IMongoRepository<MatchDocument> _matches;
     private readonly MatchingService _matchingService;
 
     public MatchesController(
-        MongoRepository<UserProfile> users,
-        MongoRepository<Listing> listings,
-        MongoRepository<DemandRequest> demands,
-        MongoRepository<MatchDocument> matches,
+        IMongoRepository<UserProfile> users,
+        IMongoRepository<Listing> listings,
+        IMongoRepository<DemandRequest> demands,
+        IMongoRepository<MatchDocument> matches,
         MatchingService matchingService)
     {
         _users = users;
@@ -66,10 +64,7 @@ public class MatchesController : ControllerBase
             await GenerateMatchesForBuyerAsync(uid, profile.SearchRadiusKm);
         }
 
-        var feed = _matches.Collection.AsQueryable()
-            .Where(m => m.FarmerId == uid || m.BuyerId == uid);
-
-        var results = await feed.ToListAsync();
+        var results = await _matches.FindAsync(m => m.FarmerId == uid || m.BuyerId == uid);
 
         var ordered = results
             .OrderByDescending(m => m.Score)
@@ -151,7 +146,7 @@ public class MatchesController : ControllerBase
     }
 
     [HttpPost("{matchId}/rating")]
-    public async Task<IActionResult> SubmitRating(string matchId, [FromBody] RatingRequest request, [FromServices] MongoRepository<Rating> ratings)
+    public async Task<IActionResult> SubmitRating(string matchId, [FromBody] RatingRequest request, [FromServices] IMongoRepository<Rating> ratings)
     {
         var uid = User.GetFirebaseUid();
         var match = await _matches.GetByIdAsync(matchId);
@@ -167,8 +162,7 @@ public class MatchesController : ControllerBase
         }
 
         // One rating per (match, rater) pair — check before inserting.
-        var alreadyRated = await ratings.Collection.AsQueryable()
-            .AnyAsync(r => r.MatchId == matchId && r.RaisedByUserId == uid);
+        var alreadyRated = await ratings.AnyAsync(r => r.MatchId == matchId && r.RaisedByUserId == uid);
         if (alreadyRated)
         {
             return Conflict("A rating for this match has already been submitted by this user.");
@@ -187,13 +181,11 @@ public class MatchesController : ControllerBase
 
     private async Task GenerateMatchesForFarmerAsync(string farmerId, int searchRadiusKm)
     {
-        var myListings = await QueryAsync(_listings.Collection.AsQueryable()
-            .Where(l => l.FarmerId == farmerId && l.Status == "Active"));
+        var myListings = await _listings.FindAsync(l => l.FarmerId == farmerId && l.Status == "Active");
 
         foreach (var listing in myListings)
         {
-            var candidateDemands = await QueryAsync(_demands.Collection.AsQueryable()
-                .Where(d => d.CropType == listing.CropType && d.Status == "Open"));
+            var candidateDemands = await _demands.FindAsync(d => d.CropType == listing.CropType && d.Status == "Open");
 
             foreach (var demand in candidateDemands)
             {
@@ -204,13 +196,11 @@ public class MatchesController : ControllerBase
 
     private async Task GenerateMatchesForBuyerAsync(string buyerId, int searchRadiusKm)
     {
-        var myDemands = await QueryAsync(_demands.Collection.AsQueryable()
-            .Where(d => d.BuyerId == buyerId && d.Status == "Open"));
+        var myDemands = await _demands.FindAsync(d => d.BuyerId == buyerId && d.Status == "Open");
 
         foreach (var demand in myDemands)
         {
-            var candidateListings = await QueryAsync(_listings.Collection.AsQueryable()
-                .Where(l => l.CropType == demand.CropType && l.Status == "Active"));
+            var candidateListings = await _listings.FindAsync(l => l.CropType == demand.CropType && l.Status == "Active");
 
             foreach (var listing in candidateListings)
             {
@@ -250,11 +240,5 @@ public class MatchesController : ControllerBase
         };
 
         await _matches.UpsertAsync(match);
-    }
-
-    private static async Task<List<T>> QueryAsync<T>(IQueryable<T> query)
-    {
-        var results = await query.ToListAsync();
-        return results;
     }
 }

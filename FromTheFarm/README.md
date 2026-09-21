@@ -41,9 +41,9 @@ Run these from the `FromTheFarm` folder.
 
 - A user signs in with Google. Firebase hands back a signed ID token proving who they are.
 - Every request from the app to the API carries that token; the API re-validates it against Google before trusting it, and reads the user's ID out of the token itself — never from anything the app just typed in.
-- The API validates every listing, demand and profile write on the server, and returns 403 if a user tries to edit or delete a record they don't own.
+- The API validates every listing, demand and profile write on the server, and returns 403 if a user tries to edit or delete a record they don't own. Creating a listing requires the Farmer role and creating a demand requires the Buyer role, so the app's hidden buttons are backed by the API.
 - On first sign-in the user picks a starting mode (**Farmer** or **Buyer**), a language, a search radius, and optionally a phone number. Settings can switch the mode later without signing out; listings and demand requests stay attached to the account.
-- **Farmers** manage produce listings (crop, quantity, harvest date, location, optional photo). **Buyers** manage demand requests the same way, plus a "find nearby produce" search. Location can be filled from the device GPS or entered manually.
+- **Farmers** manage produce listings (crop, quantity, harvest date, location, optional photo). **Buyers** manage demand requests the same way, plus a "find nearby produce" search; tapping a listing starts a demand request with its crop prefilled. Location can be filled from the device GPS or entered manually.
 - **Matching**: `MatchingService` scores every listing/demand pair — 35% distance, 30% crop type (all-or-nothing), 20% quantity fit, 15% freshness (harvest vs. deadline, decaying to zero 14 days late). Anything outside the search radius, a different crop, or scoring below 0.4 overall is excluded entirely rather than shown as a weak match.
 - Matches move through a fixed lifecycle the app enforces in order: **Suggested** (contact details hidden) → **Confirmed** (contact details unlock) → **Completed** → **Rated**. You can't skip a stage.
 - Optional **biometric unlock** is a local, per-device app-access lock on top of an already-saved Firebase session — not a separate account, and not encrypted credential storage.
@@ -60,7 +60,7 @@ FromTheFarm.Api/
 │   ├── ListingsController.cs         — farmer listings CRUD, buyer distance search
 │   ├── DemandsController.cs          — buyer demand requests CRUD
 │   ├── MatchesController.cs          — scored feed, detail, confirm/complete/rate
-│   └── HealthController.cs           — unauthenticated Mongo ping
+│   └── HealthController.cs           — unauthenticated Mongo ping, also reports the deployed commit
 ├── Models/                           — Listing, DemandRequest, MatchDocument, Rating, UserProfile (has OnboardingComplete), GeoLocation
 └── Services/
     ├── MatchingService.cs            — weighted match scoring + Haversine distance
@@ -68,16 +68,21 @@ FromTheFarm.Api/
     ├── IMongoRepository.cs           — the interface controllers depend on, so tests can substitute a double
     ├── MongoIndexes.cs               — best-effort index creation at startup
     ├── RequestValidation.cs          — server-side validation shared by the write endpoints
+    ├── RoleRequirement.cs            — Farmer/Buyer role check for the create endpoints
+    ├── BuildInfo.cs                  — short commit hash of the running build (from RENDER_GIT_COMMIT)
     ├── ClaimsPrincipalExtensions.cs  — Firebase UID from the validated token
     ├── DateOnlySerializer.cs         — DateOnly <-> "yyyy-MM-dd" BSON string
     └── MongoDbOptions.cs             — connection string / database name binding
 
 FromTheFarm.Api.Tests/
 ├── RequestValidationTests.cs         — 54 tests
+├── MatchesControllerTests.cs         — 35 tests
 ├── UsersControllerTests.cs           — 18 tests
-├── ListingsControllerTests.cs        — 15 tests
+├── ListingsControllerTests.cs        — 23 tests
 ├── MatchingServiceTests.cs           — 9 tests
-├── DemandsControllerTests.cs         — 8 tests
+├── DemandsControllerTests.cs         — 16 tests
+├── AuthControllerTests.cs            — 4 tests
+├── BuildInfoTests.cs                 — 5 tests
 ├── DateOnlySerializerTests.cs        — 3 tests
 ├── UserProfileTests.cs               — 3 tests
 └── TestDoubles.cs                    — in-memory repository and fake caller identity
@@ -107,24 +112,30 @@ android/app/src/main/java/com/fromthefarm/app/
 
 ## Testing status
 
-- **Backend**: 110 unit tests, run in CI on every push. The listings, demands and users controllers are tested against an in-memory `IMongoRepository` double (ownership checks, photo handling, validation, persistence), alongside `RequestValidationTests`, `MatchingServiceTests`, `DateOnlySerializerTests` and `UserProfileTests`. Not covered yet: `MatchesController` (status lifecycle, contact gating, one rating per user), `AuthController`, `HealthController`, the concrete `MongoRepository` and `MongoIndexes`, and `ClaimsPrincipalExtensions`. `MatchesController` and `AuthController` still depend on the concrete `MongoRepository<T>`; moving them to `IMongoRepository<T>`, as the other controllers already are, would let them be tested the same way.
+- **Backend**: 170 unit tests, run in CI on every push. Every controller except `HealthController` is tested against an in-memory `IMongoRepository` double: ownership, role, photo and validation rules for listings, demands and profiles; the whole match lifecycle (Suggested → Confirmed → Completed with no stage skipped, contact details hidden until confirmed, one rating per user, either party can act, outsiders get 404); feed generation from both the farmer's and the buyer's side; and the sign-in profile create-or-fetch. Alongside them sit `RequestValidationTests`, `MatchingServiceTests`, `DateOnlySerializerTests`, `UserProfileTests` and `BuildInfoTests`. Not covered: `HealthController`, the concrete `MongoRepository` and `MongoIndexes` (they need a live cluster), and `ClaimsPrincipalExtensions`.
 - **Android**: 25 unit tests across `FarmApiTest`, `FormValidationTest`, `FarmViewModelTest`, `SettingsProfileTest` — this is 100% of what the current test setup (JUnit + coroutines-test + MockWebServer, no Robolectric) can reach. The Compose screens themselves (`RecordEditor`, `NearbyFilter`, `ProfileEditor`, `BiometricAction`, navigation) and `PhotoTools.prepare()` in `ListingPhoto.kt` all call real Android framework classes and would need either Compose UI tests (run on a device/emulator) or Robolectric to cover.
 
 ## Deployment and CI
 
 - The API ships as a container. Render has no native .NET runtime, so it builds from `FromTheFarm.Api/Dockerfile`. The container binds to Render's `PORT` variable, and the host's health check uses the unauthenticated `GET /api/v1/health`.
+- Render redeploys on every push through its GitHub app. `GET /api/v1/health` includes the short commit hash of the running build, so the live version can be compared with the repository's latest commit with one request.
 - The only real production secret is `MongoDb__ConnectionString`, set as an environment variable on the host. Collection indexes are created best-effort at startup, so an unreachable cluster doesn't stop the service from starting.
 - GitHub Actions: **Backend CI** restores, builds, runs the unit tests and builds the Docker image; **Android CI** runs the unit tests, `assembleDebug` and lint. Each workflow only runs when its own folder changes.
 
-## Known gaps
+## Planned for Part 3
 
-- Push notifications (Firebase Cloud Messaging) are not implemented on either side.
-- Offline creation and sync (Room) is not implemented. The API already accepts a `clientGeneratedId` for it.
-- The language selector (English / isiZulu / Afrikaans) saves to the profile, but the app's text is not translated — every screen is English regardless of the choice.
-- Editing a listing can replace its photo but not remove it, and photos are stored inline on the listing document as base64, which is a stopgap for real object storage.
+- Push notifications (Firebase Cloud Messaging) on new matches — not implemented on either side.
+- Offline creation and sync (Room). The API already accepts a `clientGeneratedId` for reconciliation.
+- Translated UI. The language selector (English / isiZulu / Afrikaans) saves to the profile, but the app's text is English regardless of the choice.
+- Object storage for photos. Photos are stored inline on the listing document as base64, which is a stopgap; editing a listing can replace its photo but not remove it.
+
+## Known differences from the design document
+
 - The rating endpoint is `POST /matches/{id}/rating`; the design document specifies `/ratings` plus a `GET` for the caller's own rating, so the app tracks "already rated" locally.
-- The `farmName` / `buyerName` public labels from the design document are not implemented; a match card shows crop, quantity and distance only until the match is confirmed.
-- The match lifecycle and `AuthController` have no automated tests yet (see Testing status).
+- A `POST /matches/{id}/complete` endpoint was added to move a match from Confirmed to Completed, the transition the design document left undefined.
+- The harvest calendar is computed on the device from the listings the app has loaded, rather than served by `GET /calendar`.
+- The `farmName` / `buyerName` public labels are not implemented; a match card shows crop, quantity and distance only until the match is confirmed.
+- The database is MongoDB Atlas hosted with Render, not Azure Cosmos DB on Azure App Service as the design document describes.
 
 ## Team
 

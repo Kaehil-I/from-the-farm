@@ -2,8 +2,6 @@ using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 
 namespace FromTheFarm.Api.Controllers;
 
@@ -11,9 +9,9 @@ namespace FromTheFarm.Api.Controllers;
 [Route("api/v1/auth")]
 public class AuthController : ControllerBase
 {
-    private readonly MongoRepository<UserProfile> _users;
+    private readonly IMongoRepository<UserProfile> _users;
 
-    public AuthController(MongoRepository<UserProfile> users)
+    public AuthController(IMongoRepository<UserProfile> users)
     {
         _users = users;
     }
