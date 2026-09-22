@@ -5,7 +5,7 @@
 - **`FromTheFarm.Api`** — ASP.NET Core 8 Web API, MongoDB Atlas, Firebase ID token authentication.
 - **`android`** — Kotlin + Jetpack Compose app. Google sign-in via Firebase, live CRUD against the API, a scored match feed, and optional biometric device unlock.
 
-Part 1's UI-only prototype (mock data, no networking) has been replaced end to end: both sides are now live and talk to each other over a real REST contract.
+Part 1's UI-only prototype (mock data, no networking) has been replaced end to end: both sides are now live and talk to each other over a real REST contract. Jetpack Compose is Android's recommended modern toolkit for native, state-driven user interfaces (Android Developers, n.d.-a), while ASP.NET Core supplies the controller, routing and dependency-injection structure used by the API (Microsoft, 2026).
 
 ## How to open
 
@@ -42,10 +42,18 @@ Run these from the `FromTheFarm` folder.
 - A user signs in with Google. Firebase hands back a signed ID token proving who they are.
 - Every request from the app to the API carries that token; the API re-validates it against Google before trusting it, and reads the user's ID out of the token itself — never from anything the app just typed in.
 - First sign-in only: the user picks **Farmer** or **Buyer**, a language, a search radius, and optionally a phone number.
-- **Farmers** manage produce listings (crop, quantity, harvest date, location, optional photo). **Buyers** manage demand requests the same way, plus a "find nearby produce" search.
+- Users can switch between **Farmer** and **Buyer** modes without signing out. Their listings and demand requests remain connected to the same account.
+- **Farmers** manage produce listings (crop, quantity, harvest date, location, optional photo). Photos are selected from the device and downscaled before upload.
+- **Buyers** manage demand requests and browse active produce as tappable cards. Selecting a listing opens a new demand with only the crop type prefilled, leaving the buyer's quantity, deadline and location independent.
+- Location forms use the device's current location when permission is granted and retain manual latitude/longitude entry as a fallback.
+- Nearby searches use the configured radius and case-insensitive crop filtering. Search results are stored separately from the complete catalogue, so a search cannot remove unrelated products from Home, Demand or Calendar.
+- Buyer Home displays **Products matching your demands** first. Crop comparison ignores case. A second **Other products within range** section shows remaining products nearest-first, using the closest open-demand location and preventing duplicate cards.
+- The Calendar tab uses an interactive Material 3 date picker and displays the produce available on the selected harvest date.
 - **Matching**: `MatchingService` scores every listing/demand pair — 35% distance, 30% crop type (all-or-nothing), 20% quantity fit, 15% freshness (harvest vs. deadline, decaying to zero 14 days late). Anything outside the search radius, a different crop, or scoring below 0.4 overall is excluded entirely rather than shown as a weak match.
 - Matches move through a fixed lifecycle the app enforces in order: **Suggested** (contact details hidden) → **Confirmed** (contact details unlock) → **Completed** → **Rated**. You can't skip a stage.
 - Optional **biometric unlock** is a local, per-device app-access lock on top of an already-saved Firebase session — not a separate account, and not encrypted credential storage.
+
+Firebase Authentication provides the federated Google identity flow used by the app (Google Firebase, n.d.-b). It requires the correct Android configuration, an enabled Google provider and the signing certificate SHA-1 (Google Firebase, n.d.-a). Biometric access requires compatible hardware and enrolled biometrics on the device (Android Developers, n.d.-b). MongoDB Atlas requires both a database user and an allowed network route before an application can connect; database-user permissions are managed separately from Atlas website accounts (MongoDB, n.d.-a; MongoDB, n.d.-b).
 
 ## Project structure
 
@@ -78,6 +86,8 @@ android/app/src/main/java/com/fromthefarm/app/
 ├── data/
 │   ├── FarmApi.kt                    — Retrofit interface + REST DTOs (must mirror the API's schema exactly)
 │   ├── FarmRepository.kt             — Firebase Google sign-in, ID token, biometric-enabled flag, Retrofit client
+│   ├── BuyerRecommendations.kt       — two-section buyer Home feed, distance ordering and deduplication
+│   ├── CropNames.kt                  — case and spacing normalization for crop names
 │   ├── FormValidation.kt             — shared listing/demand field validation
 │   ├── UserRole.kt                   — FARMER / BUYER
 │   └── SampleData.kt                 — retained for the Part 1 preview screens only; live screens never use it
@@ -92,18 +102,28 @@ android/app/src/main/java/com/fromthefarm/app/
 └── src/test/java/com/fromthefarm/app/
     ├── data/FarmApiTest.kt           — request/response shape against MockWebServer
     ├── data/FormValidationTest.kt
+    ├── data/BuyerRecommendationsTest.kt
+    ├── data/CropNamesTest.kt
     ├── ui/FarmViewModelTest.kt       — session, error handling, save/delete, match lifecycle
     └── ui/SettingsProfileTest.kt
 ```
 
 ## Testing status
 
-- **Backend**: 15 unit tests across `MatchingServiceTests`, `DateOnlySerializerTests` and `UserProfileTests`, run in CI on every push. The small `ClaimsPrincipalExtensions` helper is pure logic but not covered yet. The 6 controllers and `MongoRepository` are not unit tested, because `MongoRepository<T>` is a concrete class rather than an interface, so there's no way to fake it in a test without a small refactor first.
-- **Android**: 25 unit tests across `FarmApiTest`, `FormValidationTest`, `FarmViewModelTest`, `SettingsProfileTest` — this is 100% of what the current test setup (JUnit + coroutines-test + MockWebServer, no Robolectric) can reach. The Compose screens themselves (`RecordEditor`, `NearbyFilter`, `ProfileEditor`, `BiometricAction`, navigation) and `PhotoTools.prepare()` in `ListingPhoto.kt` all call real Android framework classes and would need either Compose UI tests (run on a device/emulator) or Robolectric to cover.
+- **Backend**: 14 xUnit test methods cover matching and distance calculations, crop/radius/quantity/freshness rules, BSON date serialization and onboarding. They run in CI on every push. The controllers and `MongoRepository` still need broader integration coverage.
+- **Android**: 36 unit tests cover the Retrofit contract, Firebase Bearer headers, validation, crop normalization, buyer recommendations, range filtering, recommendation deduplication, catalogue preservation after nearby searches, session recovery, CRUD operations, match lifecycle and settings. Compose UI, biometric, image-picker and device-location flows require emulator or physical-device tests.
+
+Run the complete local checks with:
+
+```powershell
+dotnet test FromTheFarm.Api.Tests
+cd android
+.\gradlew.bat test assembleDebug lintDebug
+```
 
 ## Deployment and CI
 
-- The API ships as a container. Render has no native .NET runtime, so it builds from `FromTheFarm.Api/Dockerfile`. The container binds to Render's `PORT` variable, and the host's health check uses the unauthenticated `GET /api/v1/health`.
+- The API ships as a container and is available at `https://from-the-farm.onrender.com`. Render builds the service from `FromTheFarm.Api/Dockerfile`. Render supports repository Dockerfiles and requires web services to listen on `0.0.0.0` using the assigned `PORT` value (Render, n.d.-a; Render, n.d.-b). The host health check uses the unauthenticated `GET /api/v1/health`.
 - The only real production secret is `MongoDb__ConnectionString`, set as an environment variable on the host.
 - GitHub Actions: **Backend CI** restores, builds, runs the unit tests and builds the Docker image; **Android CI** runs the unit tests, `assembleDebug` and lint. Each workflow only runs when its own folder changes.
 
@@ -115,7 +135,9 @@ android/app/src/main/java/com/fromthefarm/app/
 - Editing a listing does not replace its photo (`PUT /listings/{id}` ignores `photoBase64`), and photos are stored inline on the listing document as base64, which is a stopgap for real object storage.
 - The rating endpoint is `POST /matches/{id}/rating`; the design document specifies `/ratings` plus a `GET` for the caller's own rating, so the app tracks "already rated" locally.
 - The `farmName` / `buyerName` public labels from the design document are not implemented; a match card shows crop, quantity and distance only until the match is confirmed.
-- Controller and match-lifecycle logic has no automated tests (see Testing status).
+- Backend controller and full match-lifecycle integration coverage remains limited (see Testing status).
+- Buyer Home measures nearby products from the closest open-demand location because the profile does not contain a separate permanent buyer location.
+- Render free services may take time to wake after a period of inactivity.
 
 ## Team
 
@@ -123,3 +145,23 @@ android/app/src/main/java/com/fromthefarm/app/
 - Kaehil Indurjeeth — backend deployment, Firebase token verification, matching/feed logic, CI/CD
 - Gregory Luyckfasseel — listing/demand CRUD ownership, Mongo validation, photo support, profile/settings persistence
 - Kyra Naidoo — Research Report, unit test coordination, README
+
+## References
+
+Android Developers. n.d.-a. *Jetpack Compose UI app development toolkit*. Available at: https://developer.android.com/compose (Accessed: 22 September 2026).
+
+Android Developers. n.d.-b. *Show a biometric authentication dialog*. Available at: https://developer.android.com/identity/sign-in/biometric-auth (Accessed: 22 September 2026).
+
+Google Firebase. n.d.-a. *Authenticate with Google on Android*. Available at: https://firebase.google.com/docs/auth/android/google-signin (Accessed: 22 September 2026).
+
+Google Firebase. n.d.-b. *Firebase Authentication*. Available at: https://firebase.google.com/docs/auth/ (Accessed: 22 September 2026).
+
+Microsoft. 2026. *Tutorial: Create a controller-based web API with ASP.NET Core*. Available at: https://learn.microsoft.com/en-us/aspnet/core/tutorials/first-web-api (Accessed: 22 September 2026).
+
+MongoDB. n.d.-a. *Connect to an Atlas cluster*. Available at: https://www.mongodb.com/docs/atlas/connect-to-database-deployment/ (Accessed: 22 September 2026).
+
+MongoDB. n.d.-b. *Configure database users*. Available at: https://www.mongodb.com/docs/atlas/security-add-mongodb-users/ (Accessed: 22 September 2026).
+
+Render. n.d.-a. *Docker on Render*. Available at: https://render.com/docs/docker (Accessed: 22 September 2026).
+
+Render. n.d.-b. *Web services*. Available at: https://render.com/docs/web-services (Accessed: 22 September 2026).
