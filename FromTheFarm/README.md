@@ -43,7 +43,9 @@ Run these from the `FromTheFarm` folder.
 - Every request from the app to the API carries that token; the API re-validates it against Google before trusting it, and reads the user's ID out of the token itself — never from anything the app just typed in.
 - The API validates every listing, demand and profile write on the server, and returns 403 if a user tries to edit or delete a record they don't own. Creating a listing requires the Farmer role and creating a demand requires the Buyer role, so the app's hidden buttons are backed by the API.
 - On first sign-in the user picks a starting mode (**Farmer** or **Buyer**), a language, a search radius, and optionally a phone number. Settings can switch the mode later without signing out; listings and demand requests stay attached to the account.
-- **Farmers** manage produce listings (crop, quantity, harvest date, location, optional photo). **Buyers** manage demand requests the same way, plus a "find nearby produce" search; tapping a listing starts a demand request with its crop prefilled. Location can be filled from the device GPS or entered manually.
+- **Farmers** manage produce listings (crop, quantity, harvest date, location, optional photo). **Buyers** manage demand requests the same way, plus a "find nearby produce" search; tapping a listing starts a demand request with its crop prefilled. Location can be filled from the device GPS or entered manually. Crop names are normalized on save and on search (`CropNames`), so "tomatoes", "Tomatoes" and "TOMATOES" are treated as the same product — the backend's crop comparison is an exact string match.
+- A buyer's Home tab leads with recommended products (`BuyerRecommendations`): listings matching an open demand's crop, nearest first, then other listings within the configured search radius, then any active matches.
+- The harvest calendar is a real date picker; selecting a date lists the listings harvesting that day.
 - **Matching**: `MatchingService` scores every listing/demand pair — 35% distance, 30% crop type (all-or-nothing), 20% quantity fit, 15% freshness (harvest vs. deadline, decaying to zero 14 days late). Anything outside the search radius, a different crop, or scoring below 0.4 overall is excluded entirely rather than shown as a weak match.
 - Matches move through a fixed lifecycle the app enforces in order: **Suggested** (contact details hidden) → **Confirmed** (contact details unlock) → **Completed** → **Rated**. You can't skip a stage.
 - Optional **biometric unlock** is a local, per-device app-access lock on top of an already-saved Firebase session — not a separate account, and not encrypted credential storage.
@@ -93,11 +95,13 @@ android/app/src/main/java/com/fromthefarm/app/
 │   ├── FarmApi.kt                    — Retrofit interface + REST DTOs (must mirror the API's schema exactly)
 │   ├── FarmRepository.kt             — Firebase Google sign-in, ID token, biometric-enabled flag, Retrofit client
 │   ├── FormValidation.kt             — shared listing/demand field validation
+│   ├── BuyerRecommendations.kt       — matches a buyer's open demands to nearby listings by crop and distance
+│   ├── CropNames.kt                  — normalizes crop text so casing doesn't fragment matching or search
 │   ├── UserRole.kt                   — FARMER / BUYER
 │   └── SampleData.kt                 — retained for the Part 1 preview screens only; live screens never use it
 ├── ui/
 │   ├── FarmViewModel.kt              — single state holder: session, profile, listings/demands/matches, error mapping
-│   ├── navigation/FarmNavHost.kt      — authenticated shell: bottom nav, editors, match detail, biometric lock screen
+│   ├── navigation/FarmNavHost.kt      — authenticated shell: bottom nav, editors, match detail, biometric lock screen, buyer recommendations, harvest calendar
 │   └── screens/
 │       ├── LiveForms.kt              — RecordEditor (listing/demand form, GPS location), NearbyFilter (buyer search), ProfileEditor (onboarding/settings, mode switch)
 │       ├── BiometricAction.kt        — fingerprint/face prompt button
@@ -106,6 +110,8 @@ android/app/src/main/java/com/fromthefarm/app/
 └── src/test/java/com/fromthefarm/app/
     ├── data/FarmApiTest.kt           — request/response shape against MockWebServer
     ├── data/FormValidationTest.kt
+    ├── data/BuyerRecommendationsTest.kt
+    ├── data/CropNamesTest.kt
     ├── ui/FarmViewModelTest.kt       — session, error handling, save/delete, match lifecycle
     └── ui/SettingsProfileTest.kt
 ```
@@ -113,7 +119,7 @@ android/app/src/main/java/com/fromthefarm/app/
 ## Testing status
 
 - **Backend**: 170 unit tests, run in CI on every push. Every controller except `HealthController` is tested against an in-memory `IMongoRepository` double: ownership, role, photo and validation rules for listings, demands and profiles; the whole match lifecycle (Suggested → Confirmed → Completed with no stage skipped, contact details hidden until confirmed, one rating per user, either party can act, outsiders get 404); feed generation from both the farmer's and the buyer's side; and the sign-in profile create-or-fetch. Alongside them sit `RequestValidationTests`, `MatchingServiceTests`, `DateOnlySerializerTests`, `UserProfileTests` and `BuildInfoTests`. Not covered: `HealthController`, the concrete `MongoRepository` and `MongoIndexes` (they need a live cluster), and `ClaimsPrincipalExtensions`.
-- **Android**: 25 unit tests across `FarmApiTest`, `FormValidationTest`, `FarmViewModelTest`, `SettingsProfileTest` — this is 100% of what the current test setup (JUnit + coroutines-test + MockWebServer, no Robolectric) can reach. The Compose screens themselves (`RecordEditor`, `NearbyFilter`, `ProfileEditor`, `BiometricAction`, navigation) and `PhotoTools.prepare()` in `ListingPhoto.kt` all call real Android framework classes and would need either Compose UI tests (run on a device/emulator) or Robolectric to cover.
+- **Android**: 36 unit tests across `FarmApiTest`, `FormValidationTest`, `BuyerRecommendationsTest`, `CropNamesTest`, `FarmViewModelTest`, `SettingsProfileTest` — this is 100% of what the current test setup (JUnit + coroutines-test + MockWebServer, no Robolectric) can reach. The Compose screens themselves (`RecordEditor`, `NearbyFilter`, `ProfileEditor`, `BiometricAction`, navigation, the buyer recommendation cards, the harvest calendar) and `PhotoTools.prepare()` in `ListingPhoto.kt` all call real Android framework classes and would need either Compose UI tests (run on a device/emulator) or Robolectric to cover.
 
 ## Deployment and CI
 
