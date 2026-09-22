@@ -47,7 +47,8 @@ Run these from the `FromTheFarm` folder.
 - Every request from the app to the API carries that token; the API re-validates it against Google before trusting it, and reads the user's ID out of the token itself — never from anything the app just typed in.
 - First sign-in only: the user picks **Farmer** or **Buyer**, a language, a search radius, and optionally a phone number.
 - Users can switch between **Farmer** and **Buyer** modes without signing out. Their listings and demand requests remain connected to the same account.
-- **Farmers** manage produce listings (crop, quantity, harvest date, location, optional photo). Photos are selected from the device and downscaled before upload.
+- The API validates every listing, demand and profile write on the server, and returns 403 if a user tries to edit or delete a record they don't own. Creating a listing requires the Farmer role and creating a demand requires the Buyer role, so the app's hidden buttons are backed by the API, not just hidden in the UI.
+- **Farmers** manage produce listings (crop, quantity, harvest date, location, optional photo). Photos are selected from the device and downscaled before upload, and editing a listing can replace its photo.
 - **Buyers** manage demand requests and browse active produce as tappable cards. Selecting a listing opens a new demand with only the crop type prefilled, leaving the buyer's quantity, deadline and location independent.
 - Location forms use the device's current location when permission is granted and retain manual latitude/longitude entry as a fallback.
 - Nearby searches use the configured radius and case-insensitive crop filtering. Search results are stored separately from the complete catalogue, so a search cannot remove unrelated products from Home, Demand or Calendar.
@@ -67,23 +68,36 @@ FromTheFarm.Api/
 ├── Program.cs                        — DI, Mongo client, Firebase JWT bearer auth, Swagger
 ├── Controllers/
 │   ├── AuthController.cs             — POST auth/session (create-or-fetch profile)
-│   ├── UsersController.cs            — GET/PUT users/me (profile + onboarding)
+│   ├── UsersController.cs            — GET/PUT users/me (profile, onboarding, mode switch)
 │   ├── ListingsController.cs         — farmer listings CRUD, buyer distance search
 │   ├── DemandsController.cs          — buyer demand requests CRUD
 │   ├── MatchesController.cs          — scored feed, detail, confirm/complete/rate
-│   └── HealthController.cs           — unauthenticated Mongo ping
+│   └── HealthController.cs           — unauthenticated Mongo ping, also reports the deployed commit
 ├── Models/                           — Listing, DemandRequest, MatchDocument, Rating, UserProfile (has OnboardingComplete), GeoLocation
 └── Services/
     ├── MatchingService.cs            — weighted match scoring + Haversine distance
     ├── MongoRepository.cs            — generic get/upsert/delete wrapper per collection
+    ├── IMongoRepository.cs           — the interface controllers depend on, so tests can substitute a double
+    ├── MongoIndexes.cs               — best-effort index creation at startup
+    ├── RequestValidation.cs          — server-side validation shared by the write endpoints
+    ├── RoleRequirement.cs            — Farmer/Buyer role check for the create endpoints
+    ├── BuildInfo.cs                  — short commit hash of the running build (from RENDER_GIT_COMMIT)
     ├── ClaimsPrincipalExtensions.cs  — Firebase UID from the validated token
     ├── DateOnlySerializer.cs         — DateOnly <-> "yyyy-MM-dd" BSON string
     └── MongoDbOptions.cs             — connection string / database name binding
 
 FromTheFarm.Api.Tests/
+├── RequestValidationTests.cs         — 54 tests
+├── MatchesControllerTests.cs         — 35 tests
+├── UsersControllerTests.cs           — 18 tests
+├── ListingsControllerTests.cs        — 23 tests
 ├── MatchingServiceTests.cs           — 9 tests
+├── DemandsControllerTests.cs         — 16 tests
+├── AuthControllerTests.cs            — 4 tests
+├── BuildInfoTests.cs                 — 5 tests
 ├── DateOnlySerializerTests.cs        — 3 tests
-└── UserProfileTests.cs               — 3 tests
+├── UserProfileTests.cs               — 3 tests
+└── TestDoubles.cs                    — in-memory repository and fake caller identity
 
 android/app/src/main/java/com/fromthefarm/app/
 ├── MainActivity.kt                   — entry point, hosts FarmNavHost
@@ -97,7 +111,7 @@ android/app/src/main/java/com/fromthefarm/app/
 │   └── SampleData.kt                 — retained for the Part 1 preview screens only; live screens never use it
 ├── ui/
 │   ├── FarmViewModel.kt              — single state holder: session, profile, listings/demands/matches, error mapping
-│   ├── navigation/FarmNavHost.kt      — authenticated shell: bottom nav, editors, match detail, biometric lock screen
+│   ├── navigation/FarmNavHost.kt      — authenticated shell: bottom nav, editors, match detail, biometric lock screen, buyer recommendations, harvest calendar
 │   └── screens/
 │       ├── LiveForms.kt              — RecordEditor (listing/demand form), NearbyFilter (buyer search), ProfileEditor (onboarding/settings)
 │       ├── BiometricAction.kt        — fingerprint/face prompt button
@@ -114,7 +128,7 @@ android/app/src/main/java/com/fromthefarm/app/
 
 ## Testing status
 
-- **Backend**: 14 xUnit test methods cover matching and distance calculations, crop/radius/quantity/freshness rules, BSON date serialization and onboarding. They run in CI on every push. The controllers and `MongoRepository` still need broader integration coverage.
+- **Backend**: 170 xUnit test methods, run in CI on every push. Every controller except `HealthController` is tested against an in-memory `IMongoRepository` double: ownership, role and validation rules for listings, demands and profiles; the whole match lifecycle (Suggested → Confirmed → Completed with no stage skipped, contact details hidden until confirmed, one rating per user, outsiders get 404); feed generation from both the farmer's and the buyer's side; and the sign-in profile create-or-fetch. Alongside them sit matching and distance calculations, crop/radius/quantity/freshness rules and BSON date serialization. Not covered: `HealthController`, the concrete `MongoRepository` and `MongoIndexes` (they need a live cluster), and `ClaimsPrincipalExtensions`.
 - **Android**: 36 unit tests cover the Retrofit contract, Firebase Bearer headers, validation, crop normalization, buyer recommendations, range filtering, recommendation deduplication, catalogue preservation after nearby searches, session recovery, CRUD operations, match lifecycle and settings. Compose UI, biometric, image-picker and device-location flows require emulator or physical-device tests.
 
 Run the complete local checks with:
@@ -127,8 +141,9 @@ cd android
 
 ## Deployment and CI
 
-- The API ships as a container and is available at `https://from-the-farm.onrender.com`. Render builds the service from `FromTheFarm.Api/Dockerfile`. Render supports repository Dockerfiles and requires web services to listen on `0.0.0.0` using the assigned `PORT` value (Render, n.d.-a; Render, n.d.-b). The host health check uses the unauthenticated `GET /api/v1/health`.
-- The only real production secret is `MongoDb__ConnectionString`, set as an environment variable on the host.
+- The API ships as a container and is available at `https://from-the-farm.onrender.com`. Render builds the service from `FromTheFarm.Api/Dockerfile`. Render supports repository Dockerfiles and requires web services to listen on `0.0.0.0` using the assigned `PORT` value (Render, n.d.-a; Render, n.d.-b). The host health check uses the unauthenticated `GET /api/v1/health`, which also returns the short commit hash of the running build, so the live version can be checked against the repository's latest commit with one request.
+- Render redeploys on every push through its GitHub app.
+- The only real production secret is `MongoDb__ConnectionString`, set as an environment variable on the host. Collection indexes are created best-effort at startup, so an unreachable cluster doesn't stop the service from starting.
 - GitHub Actions: **Backend CI** restores, builds, runs the unit tests and builds the Docker image; **Android CI** runs the unit tests, `assembleDebug` and lint. Each workflow only runs when its own folder changes.
 
 ## Known gaps
@@ -136,10 +151,10 @@ cd android
 - Push notifications (Firebase Cloud Messaging) are not implemented on either side.
 - Offline creation and sync (Room) is not implemented. The API already accepts a `clientGeneratedId` for it.
 - The language selector (English / isiZulu / Afrikaans) saves to the profile, but the app's text is not translated — every screen is English regardless of the choice.
-- Editing a listing does not replace its photo (`PUT /listings/{id}` ignores `photoBase64`), and photos are stored inline on the listing document as base64, which is a stopgap for real object storage.
+- Editing a listing can replace its photo but not remove it, and photos are stored inline on the listing document as base64, which is a stopgap for real object storage.
 - The rating endpoint is `POST /matches/{id}/rating`; the design document specifies `/ratings` plus a `GET` for the caller's own rating, so the app tracks "already rated" locally.
 - The `farmName` / `buyerName` public labels from the design document are not implemented; a match card shows crop, quantity and distance only until the match is confirmed.
-- Backend controller and full match-lifecycle integration coverage remains limited (see Testing status).
+- `HealthController`, the concrete `MongoRepository`/`MongoIndexes` and `ClaimsPrincipalExtensions` have no automated tests (see Testing status).
 - Buyer Home measures nearby products from the closest open-demand location because the profile does not contain a separate permanent buyer location.
 - Render free services may take time to wake after a period of inactivity.
 
