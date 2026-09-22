@@ -160,10 +160,10 @@ cd android
 
 ## Team
 
-- Zario Di Paolo — Android frontend (auth wiring, live screens, navigation, forms, biometric unlock)
-- Kaehil Indurjeeth — backend deployment, Firebase token verification, matching/feed logic, CI/CD
+- Zario Di Paolo — Android frontend (auth wiring, live screens, navigation, forms, biometric unlock), Unit Testing
+- Kaehil Indurjeeth — backend deployment, Firebase token verification, matching/feed logic, CI/CD, Unit Testing
 - Gregory Luyckfasseel — listing/demand CRUD ownership, Mongo validation, photo support, profile/settings persistence
-- Kyra Naidoo — Research Report, unit test coordination, README
+- Kyra Naidoo — Research Report, unit test drafting, README draft
 
 ## References
 
