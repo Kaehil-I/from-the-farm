@@ -11,6 +11,10 @@ Part 1's UI-only prototype (mock data, no networking) has been replaced end to e
 
 [Watch the demo](https://youtu.be/6OHo6i-GAxo)
 
+## Development repository
+
+This repository is the submitted deliverable, with the team's full commit history. Day-to-day development happened on [Kaehil-I/from-the-farm](https://github.com/Kaehil-I/from-the-farm), including this repository's own commit history — pull request reviews, individual GitHub Actions run logs and issue discussion live there rather than transferring with a branch mirror. The live deployment on Render is also connected to that repository.
+
 ## How to open
 
 ### Backend (`FromTheFarm.Api`)
