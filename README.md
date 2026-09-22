@@ -7,6 +7,10 @@
 
 Part 1's UI-only prototype (mock data, no networking) has been replaced end to end: both sides are now live and talk to each other over a real REST contract. Jetpack Compose is Android's recommended modern toolkit for native, state-driven user interfaces (Android Developers, n.d.-a), while ASP.NET Core supplies the controller, routing and dependency-injection structure used by the API (Microsoft, 2026).
 
+## Video walkthrough
+
+[Watch the demo](https://youtu.be/6OHo6i-GAxo)
+
 ## How to open
 
 ### Backend (`FromTheFarm.Api`)
