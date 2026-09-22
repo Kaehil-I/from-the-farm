@@ -1,132 +1,310 @@
 package com.fromthefarm.app.ui.navigation
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import com.fromthefarm.app.ui.screens.*
-import com.fromthefarm.app.ui.theme.FarmGreen
-import androidx.compose.runtime.getValue
-import androidx.compose.foundation.layout.padding
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import com.fromthefarm.app.data.UserRole
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fromthefarm.app.data.*
+import com.fromthefarm.app.ui.FarmViewModel
+import com.fromthefarm.app.ui.screens.RecordEditor
+import com.fromthefarm.app.ui.screens.ProfileEditor
+import com.fromthefarm.app.ui.screens.NearbyFilter
+import com.fromthefarm.app.ui.screens.ListingPhoto
+import com.fromthefarm.app.ui.screens.BiometricAction
+import kotlin.math.roundToInt
+import java.time.Instant
+import java.time.ZoneOffset
 
-// Routes
-private const val LOGIN = "login"
-private const val ONBOARDING = "onboarding"
-private const val HOME = "home"
-private const val LISTINGS = "listings"
-private const val CREATE_LISTING = "createListing"
-private const val MATCH_DETAIL = "matchDetail"
-private const val DEMAND_BOARD = "demandBoard"
-private const val CREATE_DEMAND = "createDemand"
-private const val CALENDAR = "calendar"
-private const val SETTINGS = "settings"
-
-// Routes that show the bottom navigation bar
-private val bottomBarRoutes = setOf(HOME, LISTINGS, CALENDAR, SETTINGS)
-
-private data class BottomItem(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
-
-private val bottomItems = listOf(
-    BottomItem(HOME, "Home", Icons.Filled.Home),
-    BottomItem(LISTINGS, "Listings", Icons.Filled.List),
-    BottomItem(CALENDAR, "Calendar", Icons.Filled.CalendarToday),
-    BottomItem(SETTINGS, "Settings", Icons.Filled.Settings)
-)
-
+/** Authenticated shell. The Part 1 sample screens are retained for design previews only. */
 @Composable
-fun FarmNavHost() {
-    val navController = rememberNavController()
-    var userRole by remember { mutableStateOf(UserRole.FARMER) }
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
-
-    Scaffold(
-        bottomBar = {
-            if (currentRoute in bottomBarRoutes) {
-                NavigationBar {
-                    bottomItems.forEach { item ->
-                        NavigationBarItem(
-                            selected = currentRoute == item.route,
-                            onClick = {
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
+fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(LocalContext.current.applicationContext))) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var tab by rememberSaveable { mutableStateOf("Home") }
+    var editor by rememberSaveable { mutableStateOf<String?>(null) }
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var matchId by rememberSaveable { mutableStateOf<String?>(null) }
+    var deleteId by remember { mutableStateOf<String?>(null) }
+    var completeId by remember { mutableStateOf<String?>(null) }
+    var lastUserId by rememberSaveable { mutableStateOf<String?>(null) }
+    var lastRole by rememberSaveable { mutableStateOf<String?>(null) }
+    var demandSeedCrop by rememberSaveable { mutableStateOf<String?>(null) }
+    val profile = state.profile
+    if (state.biometricLocked) {
+        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("From The Farm is locked", style = MaterialTheme.typography.headlineSmall)
+            Text("Unlock your saved Google session with your fingerprint or supported face recognition.")
+            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            BiometricAction("Unlock with biometrics", !state.busy, vm::unlockWithBiometrics, vm::biometricError)
+            TextButton(enabled = !state.busy, onClick = { vm.signIn(context) }) { Text("Use Google instead") }
+            TextButton(enabled = !state.busy, onClick = vm::logout) { Text("Sign out") }
+        }
+        return
+    }
+    val onboarded = profile?.role in listOf("Farmer", "Buyer")
+    val farmer = profile?.role == "Farmer"
+    LaunchedEffect(profile?.userId) {
+        if (profile != null && lastUserId != profile.userId) {
+            tab = "Home"; editor = null; matchId = null; deleteId = null; demandSeedCrop = null
+            lastUserId = profile.userId
+            lastRole = profile.role
+        }
+    }
+    LaunchedEffect(profile?.role) {
+        if (profile != null && lastRole != null && lastRole != profile.role) {
+            tab = "Home"; editor = null; editingId = null; matchId = null; deleteId = null; completeId = null; demandSeedCrop = null
+        }
+        if (profile != null) lastRole = profile.role
+    }
+    LaunchedEffect(onboarded, state.loaded, state.busy, state.error) {
+        if (onboarded && !state.loaded && !state.busy && state.error == null) vm.refresh()
+    }
+    LaunchedEffect(matchId, state.busy, state.detail, state.error) {
+        if (onboarded && matchId != null && !state.busy && state.detail == null && state.error == null) {
+            matchId?.let(vm::openMatch)
+        }
+    }
+    BackHandler(editor != null || matchId != null) { if (!state.busy) { editor = null; matchId = null } }
+    Scaffold(bottomBar = {
+        if (onboarded && editor == null && matchId == null) NavigationBar {
+            listOf("Home" to Icons.Default.Home, "Listings" to Icons.Default.List,
+                "Calendar" to Icons.Default.CalendarToday, "Settings" to Icons.Default.Settings).forEach { (name, icon) ->
+                NavigationBarItem(selected = tab == name, enabled = !state.busy, onClick = { tab = name },
+                    icon = { Icon(icon, name) }, label = { Text(if (name == "Listings" && !farmer) "Demand" else name) })
+            }
+        }
+    }) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp)
+            .imePadding().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Spacer(Modifier.height(12.dp))
+            Text("From the farm", style = MaterialTheme.typography.headlineSmall)
+            if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            state.message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+            if (profile == null && state.firebaseSignedIn) {
+                Text("Google sign-in succeeded.", style = MaterialTheme.typography.titleLarge)
+                Text("Your farm profile could not be loaded yet. Retry when the service is available.")
+                Button(enabled = !state.busy, onClick = vm::resumeSession) { Text("Retry loading profile") }
+                if (!state.biometricEnabled) BiometricAction("Enable biometric unlock", !state.busy, vm::enableBiometrics, vm::biometricError)
+                else {
+                    TextButton(enabled = !state.busy, onClick = vm::lock) { Text("Lock app") }
+                    TextButton(enabled = !state.busy, onClick = vm::disableBiometrics) { Text("Turn off biometric unlock") }
+                }
+                TextButton(enabled = !state.busy, onClick = vm::logout) { Text("Sign out") }
+            } else if (profile == null) {
+                Text("Connect. Grow. Sell.")
+                Text("Sign in or create your account with Google to connect with local farmers and buyers.")
+                Button(enabled = !state.busy, onClick = { vm.signIn(context) }) { Text("Continue with Google") }
+                if (state.error != null) TextButton(enabled = !state.busy, onClick = vm::resumeSession) { Text("Retry saved session") }
+            } else if (!onboarded) {
+                ProfileEditor(profile, state.busy, true, vm::saveProfile)
+                TextButton(enabled = !state.busy, onClick = vm::logout) { Text("Sign out") }
+            } else if (editor != null) {
+                val demand = editor == "demand"
+                val missingRecord = editingId != null && if (demand) state.demands.none { it.id == editingId } else state.listings.none { it.id == editingId }
+                if (missingRecord) {
+                    Text("The record is not available. Return to your records and refresh.")
+                    TextButton(enabled = !state.busy, onClick = { editor = null }) { Text("Back") }
+                } else RecordEditor(demand, editingId, state.listings.find { it.id == editingId }, state.demands.find { it.id == editingId }, state.busy,
+                    seedCropType = demandSeedCrop,
+                    onBack = { editor = null }, onSave = { crop, amount, unit, date, location, photo ->
+                        if (demand) vm.saveDemand(editingId, DemandWrite(crop, amount, unit, date, location)) { editor = null }
+                        else vm.saveListing(editingId, ListingWrite(crop, amount, unit, date, location, photo)) { editor = null }
+                    })
+            } else if (matchId != null) {
+                TextButton(enabled = !state.busy, onClick = { matchId = null }) { Text("Back to matches") }
+                Text("Match details", style = MaterialTheme.typography.titleLarge)
+                val detail = state.detail?.takeIf { it.matchId == matchId }
+                state.matches.find { it.matchId == matchId }?.let { Text("${it.counterpart.cropType} · ${it.counterpart.quantity} ${it.counterpart.unit}") }
+                if (detail != null) {
+                    Text("${(detail.score * 100).roundToInt()}% fit · ${detail.status}")
+                    if (detail.status in listOf("Confirmed", "Completed")) {
+                        Text(detail.counterpartContact?.displayName ?: "Contact name unavailable")
+                        Text(detail.counterpartContact?.phone ?: "No phone number has been shared.")
+                    } else Text("Contact information is shared after confirmation.")
+                    if (detail.status == "Suggested") Button(enabled = !state.busy,
+                        onClick = { vm.confirm(detail.matchId) }) { Text("Confirm match") }
+                    if (detail.status == "Confirmed") Button(enabled = !state.busy,
+                        onClick = { completeId = detail.matchId }) { Text("Mark exchange completed") }
+                    if (detail.status == "Completed" && detail.matchId !in state.ratedMatches) Row {
+                        TextButton(enabled = !state.busy, onClick = { vm.rate(detail.matchId, true) }) { Text("Thumbs up") }
+                        TextButton(enabled = !state.busy, onClick = { vm.rate(detail.matchId, false) }) { Text("Thumbs down") }
+                    }
+                }
+                completeId?.takeIf { it == detail?.matchId && detail.status == "Confirmed" }?.let { id ->
+                    AlertDialog(onDismissRequest = { completeId = null },
+                        title = { Text("Complete this exchange?") },
+                        text = { Text("Confirm that the produce exchange has taken place. You can rate it afterwards.") },
+                        confirmButton = { TextButton(enabled = !state.busy, onClick = { completeId = null; vm.complete(id) }) { Text("Complete exchange") } },
+                        dismissButton = { TextButton(onClick = { completeId = null }) { Text("Cancel") } })
+                }
+                if (matchId in state.ratedMatches) Text("You have rated this exchange.")
+                TextButton(enabled = !state.busy, onClick = { matchId?.let(vm::openMatch) }) { Text("Refresh details") }
+            } else {
+                if (tab != "Settings") TextButton(enabled = !state.busy, onClick = vm::refresh) { Text("Refresh") }
+                when (tab) {
+                    "Home" -> {
+                        Text(if (farmer) "Your matches" else "Products matching your demands", style = MaterialTheme.typography.titleLarge)
+                        Text(if (farmer) "Ranked by crop, distance, quantity and harvest timing."
+                            else "Products matching an open demand appear first, regardless of capitalization.")
+                        if (farmer && state.loaded && state.error == null && state.matches.isEmpty()) Text("No matches yet. Add a listing, then refresh.")
+                        if (!farmer) {
+                            val recommendations = BuyerRecommendations.find(state.listings, state.demands)
+                            if (state.loaded && recommendations.isEmpty()) Text("No available products currently match the crop name of an open demand.")
+                            recommendations.forEach { RecommendedListingCard(it) }
+                            val nearby = BuyerRecommendations.nearby(state.listings, state.demands, profile.searchRadiusKm,
+                                recommendations.mapTo(mutableSetOf()) { it.listing.id })
+                            Text("Other products within ${profile.searchRadiusKm} km", style = MaterialTheme.typography.titleLarge)
+                            if (state.loaded && state.demands.none { it.status == "Open" })
+                                Text("Create an open demand to use its location for nearby products.")
+                            else if (state.loaded && nearby.isEmpty())
+                                Text("No other products are available within your configured range.")
+                            nearby.forEach { NearbyBuyerListingCard(it) }
+                            if (state.matches.isNotEmpty()) Text("Your active matches", style = MaterialTheme.typography.titleLarge)
+                        }
+                        state.matches.forEach { item ->
+                            Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+                                Text(item.counterpart.cropType, style = MaterialTheme.typography.titleMedium)
+                                Text("${item.counterpart.quantity} ${item.counterpart.unit} · ${"%.1f".format(item.counterpart.distanceKm)} km")
+                                Text("${(item.score * 100).roundToInt()}% fit · ${item.status}")
+                                Text("${if (farmer) "Needed by" else "Harvest"}: ${item.counterpart.relevantDate}")
+                                TextButton(enabled = !state.busy, onClick = { matchId = item.matchId; vm.openMatch(item.matchId) }) { Text("View match") }
+                            } }
+                        }
+                    }
+                    "Listings" -> {
+                        Text(if (farmer) "My listings" else "My demand requests", style = MaterialTheme.typography.titleLarge)
+                        Button(enabled = !state.busy, onClick = { editingId = null; demandSeedCrop = null; editor = if (farmer) "listing" else "demand" }) {
+                            Text(if (farmer) "Add listing" else "Post demand")
+                        }
+                        if (farmer) {
+                            if (state.loaded && state.error == null && state.listings.isEmpty()) Text("You have no active listings.")
+                            state.listings.forEach { item ->
+                                ListingPhoto(item.photoUrl)
+                                RecordCard(item.cropType, "${item.quantity} ${item.unit} · ${item.harvestDate} · ${item.status}", state.busy,
+                                    { editingId = item.id; editor = "listing" }, { deleteId = item.id })
+                            }
+                        } else {
+                            if (state.loaded && state.error == null && state.demands.isEmpty()) Text("You have no open demand requests.")
+                            state.demands.forEach { item -> RecordCard(item.cropType, "${item.quantityNeeded} ${item.unit} · ${item.deadline} · ${item.status}", state.busy,
+                                { editingId = item.id; editor = "demand" }, { deleteId = item.id }) }
+                            Text("Available produce", style = MaterialTheme.typography.titleLarge)
+                            state.listings.forEach { item -> BrowseListingCard(item, state.busy) {
+                                editingId = null; demandSeedCrop = item.cropType; editor = "demand"
+                            } }
+                            Text("Find nearby produce", style = MaterialTheme.typography.titleLarge)
+                            NearbyFilter(profile.searchRadiusKm, state.busy, vm::browse)
+                            if (state.nearbySearchPerformed) Text("Nearby results", style = MaterialTheme.typography.titleLarge)
+                            if (state.nearbySearchPerformed && state.nearbyListings.isEmpty()) Text("No active produce listings were found for this crop and location. Try a larger radius or another crop.")
+                            state.nearbyListings.forEach { item ->
+                                BrowseListingCard(item, state.busy) {
+                                    editingId = null; demandSeedCrop = item.cropType; editor = "demand"
                                 }
-                            },
-                            icon = { Icon(item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) },
-                            colors = NavigationBarItemDefaults.colors(selectedIconColor = FarmGreen, indicatorColor = FarmGreen.copy(alpha = 0.15f))
-                        )
+                            }
+                        }
+                    }
+                    "Calendar" -> {
+                        HarvestCalendar(state.listings)
+                    }
+                    "Settings" -> {
+                        ProfileEditor(profile, state.busy, false, vm::saveProfile)
+                        HorizontalDivider()
+                        Text("Device security", style = MaterialTheme.typography.titleMedium)
+                        if (!state.biometricEnabled) BiometricAction("Enable biometric unlock on this device", !state.busy, vm::enableBiometrics, vm::biometricError)
+                        else {
+                            TextButton(enabled = !state.busy, onClick = vm::lock) { Text("Lock app") }
+                            TextButton(enabled = !state.busy, onClick = vm::disableBiometrics) { Text("Turn off biometric unlock") }
+                        }
+                        Text("Biometric unlock is enrolled on this device only, so it does not follow your account to another phone.",
+                            style = MaterialTheme.typography.bodySmall)
+                        HorizontalDivider()
+                        TextButton(enabled = !state.busy, onClick = vm::logout) { Text("Sign out") }
                     }
                 }
             }
+            Spacer(Modifier.height(16.dp))
         }
-    ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = LOGIN,
-            modifier = Modifier.padding(padding)
-        ) {
-            composable(LOGIN) {
-                LoginScreen(onContinueWithGoogle = { navController.navigate(ONBOARDING) })
-            }
-            composable(ONBOARDING) {
-                OnboardingScreen(onContinue = { selectedRole ->
-                    userRole = selectedRole
-                    navController.navigate(HOME) { popUpTo(LOGIN) { inclusive = true } }
-                })
-            }
-            composable(HOME) {
-                HomeScreen(onOpenMatch = { navController.navigate(MATCH_DETAIL) })
-            }
-            composable(LISTINGS) {
-                if (userRole == UserRole.FARMER) {
-                    MyListingsScreen(
-                        onAddListing = { navController.navigate(CREATE_LISTING) },
-                        onOpenListing = { navController.navigate(MATCH_DETAIL) }
-                    )
-                } else {
-                    BuyerDemandBoardScreen(
-                        onAddRequest = { navController.navigate(CREATE_DEMAND) }
-                    )
-                }
-            }
-            composable(CREATE_LISTING) {
-                CreateListingScreen(onBack = { navController.popBackStack() }, onSave = { navController.popBackStack() })
-            }
-            composable(MATCH_DETAIL) {
-                MatchDetailScreen(onBack = { navController.popBackStack() })
-            }
-            composable(DEMAND_BOARD) {
-                BuyerDemandBoardScreen(onAddRequest = { navController.navigate(CREATE_DEMAND) })
-            }
-            composable(CREATE_DEMAND) {
-                CreateDemandScreen(onBack = { navController.popBackStack() }, onPost = { navController.popBackStack() })
-            }
-            composable(CALENDAR) {
-                HarvestCalendarScreen()
-            }
-            composable(SETTINGS) {
-                SettingsScreen(onLogout = {
-                    navController.navigate(LOGIN) { popUpTo(0) }
-                })
-            }
+    }
+    deleteId?.let { id -> AlertDialog(onDismissRequest = { deleteId = null }, title = { Text("Remove this record?") },
+        text = { Text("It will no longer appear in your active records.") },
+        confirmButton = { TextButton(onClick = { deleteId = null; vm.delete(id, !farmer) }) { Text("Remove") } },
+        dismissButton = { TextButton(onClick = { deleteId = null }) { Text("Cancel") } }) }
+}
+
+@Composable
+private fun RecordCard(title: String, summary: String, busy: Boolean, edit: () -> Unit, remove: () -> Unit) {
+    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(summary)
+        Row {
+            TextButton(enabled = !busy, onClick = edit) { Text("Edit") }
+            TextButton(enabled = !busy, onClick = remove) { Text("Remove") }
         }
+    } }
+}
+
+@Composable
+private fun BrowseListingCard(item: Listing, busy: Boolean, openDemand: () -> Unit) {
+    Card(onClick = openDemand, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            ListingPhoto(item.photoUrl)
+            Text(item.cropType, style = MaterialTheme.typography.titleMedium)
+            Text("${item.quantity} ${item.unit} · ${item.harvestDate}")
+        }
+    }
+}
+
+@Composable
+private fun RecommendedListingCard(item: BuyerRecommendation) {
+    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        ListingPhoto(item.listing.photoUrl)
+        Text(item.listing.cropType, style = MaterialTheme.typography.titleMedium)
+        Text("Available: ${item.listing.quantity} ${item.listing.unit}")
+        Text("Harvest date: ${item.listing.harvestDate}")
+        Text("${"%.1f".format(item.distanceKm)} km from your demand location")
+        Text("Matches your request for ${item.demand.quantityNeeded} ${item.demand.unit} by ${item.demand.deadline}",
+            style = MaterialTheme.typography.bodySmall)
+    } }
+}
+
+@Composable
+private fun NearbyBuyerListingCard(item: NearbyBuyerListing) {
+    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        ListingPhoto(item.listing.photoUrl)
+        Text(item.listing.cropType, style = MaterialTheme.typography.titleMedium)
+        Text("Available: ${item.listing.quantity} ${item.listing.unit}")
+        Text("Harvest date: ${item.listing.harvestDate}")
+        Text("${"%.1f".format(item.distanceKm)} km away")
+    } }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HarvestCalendar(listings: List<Listing>) {
+    val calendar = rememberDatePickerState()
+    Text("Harvest calendar", style = MaterialTheme.typography.titleLarge)
+    Text("Select a date to see produce available on that day.")
+    DatePicker(state = calendar, showModeToggle = false)
+    val selectedDate = calendar.selectedDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString() }
+    if (selectedDate == null) Text("Select a date on the calendar.")
+    else {
+        Text(selectedDate, style = MaterialTheme.typography.titleMedium)
+        val dayListings = listings.filter { it.harvestDate == selectedDate }
+        if (dayListings.isEmpty()) Text("No produce is scheduled for this date.")
+        dayListings.forEach { item -> Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+            ListingPhoto(item.photoUrl)
+            Text(item.cropType, style = MaterialTheme.typography.titleMedium)
+            Text("${item.quantity} ${item.unit} · ${item.status}")
+        } } }
     }
 }

@@ -1,6 +1,6 @@
 package com.fromthefarm.app.data
 
-data class Listing(
+data class PreviewListing(
     val id: String,
     val cropName: String,
     val quantityKg: Int,
@@ -22,22 +22,22 @@ data class DemandRequest(
 data class CalendarEvent(
     val date: String,
     val label: String,
-    val isSupply: Boolean // true = listing ready, false = demand needed
+    val isSupply: Boolean // true = PreviewListing ready, false = demand needed
 )
 
 // Sample/mock data — replace with real API calls once Kaehil's endpoints are live.
 object SampleData {
 
     val myListings = listOf(
-        Listing("l1", "Tomatoes", 50, "3 Sept", 0.0, "Matched"),
-        Listing("l2", "Carrots", 30, "10 Sept", 0.0, "Active"),
-        Listing("l3", "Spinach", 20, "20 Aug", 0.0, "Expired")
+        PreviewListing("l1", "Tomatoes", 50, "3 Sept", 0.0, "Matched"),
+        PreviewListing("l2", "Carrots", 30, "10 Sept", 0.0, "Active"),
+        PreviewListing("l3", "Spinach", 20, "20 Aug", 0.0, "Expired")
     )
 
     val nearbyMatches = listOf(
-        Listing("m1", "Tomatoes", 50, "3 Sept", 2.3, "Active", ownerName = "Zanele's farm"),
-        Listing("m2", "Carrots", 30, "10 Sept", 4.1, "Active", ownerName = "Sipho's plot"),
-        Listing("m3", "Peppers", 15, "12 Sept", 6.8, "Active", ownerName = "Nomvula's farm")
+        PreviewListing("m1", "Tomatoes", 50, "3 Sept", 2.3, "Active", ownerName = "Zanele's farm"),
+        PreviewListing("m2", "Carrots", 30, "10 Sept", 4.1, "Active", ownerName = "Sipho's plot"),
+        PreviewListing("m3", "Peppers", 15, "12 Sept", 6.8, "Active", ownerName = "Nomvula's farm")
     )
 
     val demandBoard = listOf(
@@ -50,3 +50,4 @@ object SampleData {
         CalendarEvent("15 Sept", "Spinach needed · 40kg", isSupply = false)
     )
 }
+

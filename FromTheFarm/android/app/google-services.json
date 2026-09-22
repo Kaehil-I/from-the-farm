@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "127729053039",
+    "project_id": "fromthefarm-poe",
+    "storage_bucket": "fromthefarm-poe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:127729053039:android:ed974366a4654d30470c9a",
+        "android_client_info": {
+          "package_name": "com.fromthefarm.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "127729053039-ntmbhofa98860h1bfmcitm39brtr5tmo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fromthefarm.app",
+            "certificate_hash": "ad0cfa5215cffbcb7c1f485d8b592b4b504a8da4"
+          }
+        },
+        {
+          "client_id": "127729053039-th54aqaq1t72c01i5elus87tvtosoehn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fromthefarm.app",
+            "certificate_hash": "d541aabdda436048cd911cbf5aed2029e7ea40af"
+          }
+        },
+        {
+          "client_id": "127729053039-qq6pen3t2v2t5l7hkf89mohlfuru6rlq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJg46Ffalia0B6ByrE9pdchVyeoSNr7r0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "127729053039-qq6pen3t2v2t5l7hkf89mohlfuru6rlq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

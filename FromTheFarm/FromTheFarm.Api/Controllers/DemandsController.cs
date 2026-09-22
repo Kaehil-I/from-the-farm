@@ -2,7 +2,8 @@ using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Cosmos.Linq;
+using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace FromTheFarm.Api.Controllers;
 
@@ -11,11 +12,13 @@ namespace FromTheFarm.Api.Controllers;
 [Authorize]
 public class DemandsController : ControllerBase
 {
-    private readonly CosmosRepository<DemandRequest> _demands;
+    private readonly IMongoRepository<DemandRequest> _demands;
+    private readonly IMongoRepository<UserProfile> _users;
 
-    public DemandsController(CosmosRepository<DemandRequest> demands)
+    public DemandsController(IMongoRepository<DemandRequest> demands, IMongoRepository<UserProfile> users)
     {
         _demands = demands;
+        _users = users;
     }
 
     public record CreateDemandRequest(
@@ -32,18 +35,13 @@ public class DemandsController : ControllerBase
         [FromQuery] string? cropType = null)
     {
         var uid = User.GetFirebaseUid();
-        var query = _demands.Container.GetItemLinqQueryable<DemandRequest>()
+        var query = _demands.Collection.AsQueryable()
             .Where(d => d.Status == "Open");
 
         query = mine ? query.Where(d => d.BuyerId == uid) : query;
         query = cropType is not null ? query.Where(d => d.CropType == cropType) : query;
 
-        var results = new List<DemandRequest>();
-        using var iterator = query.ToFeedIterator();
-        while (iterator.HasMoreResults)
-        {
-            results.AddRange(await iterator.ReadNextAsync());
-        }
+        var results = await query.ToListAsync();
 
         return Ok(results);
     }
@@ -51,12 +49,26 @@ public class DemandsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<DemandRequest>> CreateDemand([FromBody] CreateDemandRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.CropType) || request.QuantityNeeded <= 0)
+        var uid = User.GetFirebaseUid();
+        var notAllowed = RoleRequirement.Check(await _users.GetByIdAsync(uid), "Buyer", "post demand requests");
+        if (notAllowed is not null)
         {
-            return BadRequest("cropType is required and quantityNeeded must be greater than 0.");
+            return StatusCode(StatusCodes.Status403Forbidden, notAllowed);
         }
 
-        var uid = User.GetFirebaseUid();
+        var invalid = RequestValidation.ForDemand(
+            request.CropType,
+            request.QuantityNeeded,
+            request.Unit,
+            request.Location,
+            request.Deadline,
+            Today);
+
+        if (invalid is not null)
+        {
+            return BadRequest(invalid);
+        }
+
         var demand = new DemandRequest
         {
             BuyerId = uid,
@@ -68,16 +80,39 @@ public class DemandsController : ControllerBase
             Location = request.Location
         };
 
-        var created = await _demands.UpsertAsync(demand, uid);
+        var created = await _demands.UpsertAsync(demand);
         return CreatedAtAction(nameof(GetDemands), new { }, created);
     }
 
     [HttpPut("{demandId}")]
     public async Task<ActionResult<DemandRequest>> UpdateDemand(string demandId, [FromBody] CreateDemandRequest request)
     {
+        var invalid = RequestValidation.ForDemand(
+            request.CropType,
+            request.QuantityNeeded,
+            request.Unit,
+            request.Location,
+            request.Deadline,
+            Today);
+
+        if (invalid is not null)
+        {
+            return BadRequest(invalid);
+        }
+
         var uid = User.GetFirebaseUid();
-        var existing = await _demands.GetByIdAsync(demandId, uid);
-        if (existing is null) return NotFound();
+        var existing = await _demands.GetByIdAsync(demandId);
+        if (existing is null)
+        {
+            return NotFound();
+        }
+
+        // The token identifies the caller; the document records its owner. Without
+        // this check any authenticated user who knows a demand id could edit it.
+        if (!string.Equals(existing.BuyerId, uid, StringComparison.Ordinal))
+        {
+            return Forbid();
+        }
 
         existing.CropType = request.CropType;
         existing.QuantityNeeded = request.QuantityNeeded;
@@ -85,7 +120,7 @@ public class DemandsController : ControllerBase
         existing.Deadline = request.Deadline;
         existing.Location = request.Location;
 
-        var updated = await _demands.UpsertAsync(existing, uid);
+        var updated = await _demands.UpsertAsync(existing);
         return Ok(updated);
     }
 
@@ -93,11 +128,21 @@ public class DemandsController : ControllerBase
     public async Task<IActionResult> DeleteDemand(string demandId)
     {
         var uid = User.GetFirebaseUid();
-        var existing = await _demands.GetByIdAsync(demandId, uid);
-        if (existing is null) return NotFound();
+        var existing = await _demands.GetByIdAsync(demandId);
+        if (existing is null)
+        {
+            return NotFound();
+        }
+
+        if (!string.Equals(existing.BuyerId, uid, StringComparison.Ordinal))
+        {
+            return Forbid();
+        }
 
         existing.Status = "Expired";
-        await _demands.UpsertAsync(existing, uid);
+        await _demands.UpsertAsync(existing);
         return NoContent();
     }
+
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow);
 }

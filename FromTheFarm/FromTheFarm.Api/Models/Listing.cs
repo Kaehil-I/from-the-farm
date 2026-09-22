@@ -1,10 +1,14 @@
 using System.Text.Json.Serialization;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using FromTheFarm.Api.Services;
 
 namespace FromTheFarm.Api.Models;
 
-// Cosmos container: Listings. Partition key: /farmerId
-public class Listing
+// Mongo collection: Listings
+public class Listing : IDocument
 {
+    [BsonId]
     [JsonPropertyName("id")]
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
@@ -19,6 +23,7 @@ public class Listing
     public string CropType { get; set; } = string.Empty;
 
     [JsonPropertyName("quantity")]
+    [BsonRepresentation(BsonType.Decimal128)]
     public decimal Quantity { get; set; }
 
     [JsonPropertyName("unit")]

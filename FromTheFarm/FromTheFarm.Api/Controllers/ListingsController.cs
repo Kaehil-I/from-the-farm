@@ -2,8 +2,8 @@ using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Cosmos.Linq;
+using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace FromTheFarm.Api.Controllers;
 
@@ -12,11 +12,13 @@ namespace FromTheFarm.Api.Controllers;
 [Authorize]
 public class ListingsController : ControllerBase
 {
-    private readonly CosmosRepository<Listing> _listings;
+    private readonly IMongoRepository<Listing> _listings;
+    private readonly IMongoRepository<UserProfile> _users;
 
-    public ListingsController(CosmosRepository<Listing> listings)
+    public ListingsController(IMongoRepository<Listing> listings, IMongoRepository<UserProfile> users)
     {
         _listings = listings;
+        _users = users;
     }
 
     public record CreateListingRequest(
@@ -28,14 +30,11 @@ public class ListingsController : ControllerBase
         GeoLocation Location,
         string? PhotoBase64);
 
-    // NOTE: Section 5 specifies maxDistanceKm as a query parameter but the
-    // design doc doesn't state what location it's measured from for a
-    // *browsing* buyer (as opposed to an already-created demand request).
-    // Resolved here pragmatically: latitude/longitude are accepted as
-    // optional query params supplied by the app's current GPS fix; distance
-    // filtering is skipped if they're omitted. Flag this in the AI usage /
-    // design notes if asked, since it's a gap-fill rather than a literal
-    // implementation of the written spec.
+    // Section 5 specifies maxDistanceKm as a query parameter but does not state
+    // what location it is measured from for a browsing buyer, as opposed to one
+    // with an existing demand request. Resolved pragmatically: latitude and
+    // longitude are accepted as optional query parameters carrying the app's
+    // current GPS fix, and distance filtering is skipped when they are omitted.
     [HttpGet]
     public async Task<ActionResult<List<Listing>>> GetListings(
         [FromQuery] bool mine = false,
@@ -45,18 +44,13 @@ public class ListingsController : ControllerBase
         [FromQuery] double? longitude = null)
     {
         var uid = User.GetFirebaseUid();
-        var query = _listings.Container.GetItemLinqQueryable<Listing>()
+        var query = _listings.Collection.AsQueryable()
             .Where(l => l.Status == "Active");
 
         query = mine ? query.Where(l => l.FarmerId == uid) : query;
         query = cropType is not null ? query.Where(l => l.CropType == cropType) : query;
 
-        var results = new List<Listing>();
-        using var iterator = query.ToFeedIterator();
-        while (iterator.HasMoreResults)
-        {
-            results.AddRange(await iterator.ReadNextAsync());
-        }
+        var results = await query.ToListAsync();
 
         if (!mine && maxDistanceKm is not null && latitude is not null && longitude is not null)
         {
@@ -72,12 +66,27 @@ public class ListingsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Listing>> CreateListing([FromBody] CreateListingRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.CropType) || request.Quantity <= 0)
+        // Authorisation comes before validation: a caller who may not create a
+        // listing at all should not learn anything about what a valid one looks like.
+        var uid = User.GetFirebaseUid();
+        var notAllowed = RoleRequirement.Check(await _users.GetByIdAsync(uid), "Farmer", "create listings");
+        if (notAllowed is not null)
         {
-            return BadRequest("cropType is required and quantity must be greater than 0.");
+            return StatusCode(StatusCodes.Status403Forbidden, notAllowed);
         }
 
-        var uid = User.GetFirebaseUid();
+        var invalid = RequestValidation.ForListing(request.CropType, request.Quantity, request.Unit, request.Location);
+        if (invalid is not null)
+        {
+            return BadRequest(invalid);
+        }
+
+        var photoError = RequestValidation.Photo(request.PhotoBase64, out var photoDataUri);
+        if (photoError is not null)
+        {
+            return BadRequest(photoError);
+        }
+
         var listing = new Listing
         {
             FarmerId = uid,
@@ -87,31 +96,45 @@ public class ListingsController : ControllerBase
             Unit = request.Unit,
             HarvestDate = request.HarvestDate,
             Location = request.Location,
-            // Gap identified during Zario's review: this previously discarded
-            // photoBase64 entirely, silently breaking the photo feature.
-            // Stopgap for Part 2: store it as a data: URI directly on the
-            // document so photos actually round-trip and render in the app.
-            // This is NOT the final design — Part 3's dedicated Azure Blob
-            // Storage task (Gantt Week 10) replaces this with a real upload
-            // and swaps PhotoUrl to a Blob Storage URL. Flagging now so this
-            // doesn't look like an oversight when that task starts: Cosmos
-            // documents cap at 2MB, so this only holds up for small/
-            // compressed images — fine for a prototype, not for production.
-            PhotoUrl = string.IsNullOrEmpty(request.PhotoBase64)
-                ? null
-                : $"data:image/jpeg;base64,{request.PhotoBase64}"
+            // Part 2 stores the image inline on the document as a data URI so
+            // photos round-trip without a separate upload step. The POE's object
+            // storage task replaces this with a hosted URL; a Mongo document is
+            // capped at 16MB, so this holds for compressed phone photos only.
+            PhotoUrl = photoDataUri
         };
 
-        var created = await _listings.UpsertAsync(listing, uid);
+        var created = await _listings.UpsertAsync(listing);
         return CreatedAtAction(nameof(GetListings), new { }, created);
     }
 
     [HttpPut("{listingId}")]
     public async Task<ActionResult<Listing>> UpdateListing(string listingId, [FromBody] CreateListingRequest request)
     {
+        var invalid = RequestValidation.ForListing(request.CropType, request.Quantity, request.Unit, request.Location);
+        if (invalid is not null)
+        {
+            return BadRequest(invalid);
+        }
+
+        var photoError = RequestValidation.Photo(request.PhotoBase64, out var photoDataUri);
+        if (photoError is not null)
+        {
+            return BadRequest(photoError);
+        }
+
         var uid = User.GetFirebaseUid();
-        var existing = await _listings.GetByIdAsync(listingId, uid);
-        if (existing is null) return NotFound();
+        var existing = await _listings.GetByIdAsync(listingId);
+        if (existing is null)
+        {
+            return NotFound();
+        }
+
+        // The token identifies the caller; the document records its owner. Without
+        // this check any authenticated user who knows a listing id could edit it.
+        if (!string.Equals(existing.FarmerId, uid, StringComparison.Ordinal))
+        {
+            return Forbid();
+        }
 
         existing.CropType = request.CropType;
         existing.Quantity = request.Quantity;
@@ -119,7 +142,14 @@ public class ListingsController : ControllerBase
         existing.HarvestDate = request.HarvestDate;
         existing.Location = request.Location;
 
-        var updated = await _listings.UpsertAsync(existing, uid);
+        // The app only sends a photo when the user picks a new one, so an absent
+        // payload means "keep the current image" rather than "remove it".
+        if (photoDataUri is not null)
+        {
+            existing.PhotoUrl = photoDataUri;
+        }
+
+        var updated = await _listings.UpsertAsync(existing);
         return Ok(updated);
     }
 
@@ -127,13 +157,21 @@ public class ListingsController : ControllerBase
     public async Task<IActionResult> DeleteListing(string listingId)
     {
         var uid = User.GetFirebaseUid();
-        var existing = await _listings.GetByIdAsync(listingId, uid);
-        if (existing is null) return NotFound();
+        var existing = await _listings.GetByIdAsync(listingId);
+        if (existing is null)
+        {
+            return NotFound();
+        }
+
+        if (!string.Equals(existing.FarmerId, uid, StringComparison.Ordinal))
+        {
+            return Forbid();
+        }
 
         // Soft-delete: preserves history for any matches already generated
         // against this listing, per Section 5.
         existing.Status = "Deleted";
-        await _listings.UpsertAsync(existing, uid);
+        await _listings.UpsertAsync(existing);
         return NoContent();
     }
 }

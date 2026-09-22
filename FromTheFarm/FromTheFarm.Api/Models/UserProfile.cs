@@ -1,11 +1,15 @@
 using System.Text.Json.Serialization;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using FromTheFarm.Api.Services;
 
 namespace FromTheFarm.Api.Models;
 
-// Cosmos container: Users. Partition key: /userId
-public class UserProfile
+// Mongo collection: Users
+public class UserProfile : IDocument
 {
-    // Cosmos requires a document "id" — we reuse the Firebase UID for both.
+    // Mongo requires a document "_id" — we reuse the Firebase UID for both.
+    [BsonId]
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
 
@@ -15,11 +19,9 @@ public class UserProfile
     [JsonPropertyName("displayName")]
     public string DisplayName { get; set; } = string.Empty;
 
-    // Referenced by GET /matches/{id}'s counterpartContact.phone in Section 5,
-    // but no settings field for collecting it was ever specified — this is a
-    // gap in the original design, not an oversight here. Flag to Zario: needs
-    // a field in the settings/onboarding screen, and Firebase Auth's Google
-    // Sign-In doesn't supply a phone number, so it must be entered manually.
+    // Released to a counterpart through counterpartContact.phone on
+    // GET /matches/{id} once a match is confirmed. Entered by the user in
+    // Settings: Google Sign-In does not supply a phone number.
     [JsonPropertyName("phone")]
     public string? Phone { get; set; }
 
@@ -43,5 +45,6 @@ public class UserProfile
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [JsonIgnore]
+    [BsonIgnore]
     public bool OnboardingComplete => Role is not null;
 }

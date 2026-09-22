@@ -2,7 +2,6 @@ using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Cosmos.Linq;
 
 namespace FromTheFarm.Api.Controllers;
 
@@ -11,17 +10,17 @@ namespace FromTheFarm.Api.Controllers;
 [Authorize]
 public class MatchesController : ControllerBase
 {
-    private readonly CosmosRepository<UserProfile> _users;
-    private readonly CosmosRepository<Listing> _listings;
-    private readonly CosmosRepository<DemandRequest> _demands;
-    private readonly CosmosRepository<MatchDocument> _matches;
+    private readonly IMongoRepository<UserProfile> _users;
+    private readonly IMongoRepository<Listing> _listings;
+    private readonly IMongoRepository<DemandRequest> _demands;
+    private readonly IMongoRepository<MatchDocument> _matches;
     private readonly MatchingService _matchingService;
 
     public MatchesController(
-        CosmosRepository<UserProfile> users,
-        CosmosRepository<Listing> listings,
-        CosmosRepository<DemandRequest> demands,
-        CosmosRepository<MatchDocument> matches,
+        IMongoRepository<UserProfile> users,
+        IMongoRepository<Listing> listings,
+        IMongoRepository<DemandRequest> demands,
+        IMongoRepository<MatchDocument> matches,
         MatchingService matchingService)
     {
         _users = users;
@@ -43,7 +42,7 @@ public class MatchesController : ControllerBase
     public async Task<ActionResult<List<MatchFeedItem>>> GetFeed()
     {
         var uid = User.GetFirebaseUid();
-        var profile = await _users.GetByIdAsync(uid, uid);
+        var profile = await _users.GetByIdAsync(uid);
         if (profile?.Role is null)
         {
             return BadRequest("Complete onboarding (set a role) before requesting matches.");
@@ -53,12 +52,9 @@ public class MatchesController : ControllerBase
         // records. Match IDs are deterministic (listingId:demandRequestId),
         // so repeated calls upsert rather than duplicate.
         //
-        // TODO (post-Part-2 improvement): this recomputes on every GET,
-        // which is fine at this project's scale but not how a production
-        // system would do it. A Cosmos DB change feed trigger reacting to
-        // new/updated Listings and Demands would compute matches once at
-        // write time instead — worth mentioning as a known limitation in
-        // the README rather than something to build under this deadline.
+        // Matching recomputes on every GET. That is acceptable at this
+        // scale; a production system would compute matches once at write
+        // time, driven by a change stream on Listings and Demands.
         if (profile.Role == "Farmer")
         {
             await GenerateMatchesForFarmerAsync(uid, profile.SearchRadiusKm);
@@ -68,15 +64,7 @@ public class MatchesController : ControllerBase
             await GenerateMatchesForBuyerAsync(uid, profile.SearchRadiusKm);
         }
 
-        var feed = _matches.Container.GetItemLinqQueryable<MatchDocument>()
-            .Where(m => m.FarmerId == uid || m.BuyerId == uid);
-
-        var results = new List<MatchDocument>();
-        using var iterator = feed.ToFeedIterator();
-        while (iterator.HasMoreResults)
-        {
-            results.AddRange(await iterator.ReadNextAsync());
-        }
+        var results = await _matches.FindAsync(m => m.FarmerId == uid || m.BuyerId == uid);
 
         var ordered = results
             .OrderByDescending(m => m.Score)
@@ -90,7 +78,7 @@ public class MatchesController : ControllerBase
     public async Task<ActionResult<MatchDetailResponse>> GetMatchDetail(string matchId)
     {
         var uid = User.GetFirebaseUid();
-        var match = await _matches.GetByIdAsync(matchId, matchId);
+        var match = await _matches.GetByIdAsync(matchId);
 
         if (match is null || (match.FarmerId != uid && match.BuyerId != uid))
         {
@@ -101,7 +89,7 @@ public class MatchesController : ControllerBase
         if (match.Status is "Confirmed" or "Completed")
         {
             var counterpartUid = match.FarmerId == uid ? match.BuyerId : match.FarmerId;
-            var counterpartProfile = await _users.GetByIdAsync(counterpartUid, counterpartUid);
+            var counterpartProfile = await _users.GetByIdAsync(counterpartUid);
             contact = new ContactInfo(counterpartProfile?.DisplayName, counterpartProfile?.Phone);
         }
 
@@ -112,7 +100,7 @@ public class MatchesController : ControllerBase
     public async Task<IActionResult> ConfirmMatch(string matchId)
     {
         var uid = User.GetFirebaseUid();
-        var match = await _matches.GetByIdAsync(matchId, matchId);
+        var match = await _matches.GetByIdAsync(matchId);
 
         if (match is null || (match.FarmerId != uid && match.BuyerId != uid))
         {
@@ -126,22 +114,19 @@ public class MatchesController : ControllerBase
 
         match.Status = "Confirmed";
         match.ConfirmedAt = DateTime.UtcNow;
-        await _matches.UpsertAsync(match, matchId);
+        await _matches.UpsertAsync(match);
 
         return NoContent();
     }
 
-    // Gap identified during Zario's review: Section 5 describes a
-    // Confirmed → Completed transition (ratings can only be submitted once
-    // "Completed"), but no endpoint actually performed that transition —
-    // there was no way for a match to ever reach "Completed" at all. Either
-    // party marks the exchange as done once it's actually happened in
-    // person; this is what unblocks POST /matches/{matchId}/rating.
+    // Performs the Confirmed → Completed transition described in Section 5.
+    // Either party marks the exchange as done once it has happened in
+    // person, which is what unblocks POST /matches/{matchId}/rating.
     [HttpPost("{matchId}/complete")]
     public async Task<IActionResult> CompleteMatch(string matchId)
     {
         var uid = User.GetFirebaseUid();
-        var match = await _matches.GetByIdAsync(matchId, matchId);
+        var match = await _matches.GetByIdAsync(matchId);
 
         if (match is null || (match.FarmerId != uid && match.BuyerId != uid))
         {
@@ -155,16 +140,16 @@ public class MatchesController : ControllerBase
 
         match.Status = "Completed";
         match.CompletedAt = DateTime.UtcNow;
-        await _matches.UpsertAsync(match, matchId);
+        await _matches.UpsertAsync(match);
 
         return NoContent();
     }
 
     [HttpPost("{matchId}/rating")]
-    public async Task<IActionResult> SubmitRating(string matchId, [FromBody] RatingRequest request, [FromServices] CosmosRepository<Rating> ratings)
+    public async Task<IActionResult> SubmitRating(string matchId, [FromBody] RatingRequest request, [FromServices] IMongoRepository<Rating> ratings)
     {
         var uid = User.GetFirebaseUid();
-        var match = await _matches.GetByIdAsync(matchId, matchId);
+        var match = await _matches.GetByIdAsync(matchId);
 
         if (match is null || (match.FarmerId != uid && match.BuyerId != uid))
         {
@@ -177,11 +162,8 @@ public class MatchesController : ControllerBase
         }
 
         // One rating per (match, rater) pair — check before inserting.
-        var existingQuery = ratings.Container.GetItemLinqQueryable<Rating>()
-            .Where(r => r.MatchId == matchId && r.RaisedByUserId == uid);
-        using var iterator = existingQuery.ToFeedIterator();
-        var existingResults = await iterator.ReadNextAsync();
-        if (existingResults.Any())
+        var alreadyRated = await ratings.AnyAsync(r => r.MatchId == matchId && r.RaisedByUserId == uid);
+        if (alreadyRated)
         {
             return Conflict("A rating for this match has already been submitted by this user.");
         }
@@ -193,19 +175,17 @@ public class MatchesController : ControllerBase
             ThumbsUp = request.ThumbsUp
         };
 
-        await ratings.UpsertAsync(rating, matchId);
+        await ratings.UpsertAsync(rating);
         return CreatedAtAction(nameof(GetMatchDetail), new { matchId }, null);
     }
 
     private async Task GenerateMatchesForFarmerAsync(string farmerId, int searchRadiusKm)
     {
-        var myListings = await QueryAsync(_listings.Container.GetItemLinqQueryable<Listing>()
-            .Where(l => l.FarmerId == farmerId && l.Status == "Active"));
+        var myListings = await _listings.FindAsync(l => l.FarmerId == farmerId && l.Status == "Active");
 
         foreach (var listing in myListings)
         {
-            var candidateDemands = await QueryAsync(_demands.Container.GetItemLinqQueryable<DemandRequest>()
-                .Where(d => d.CropType == listing.CropType && d.Status == "Open"));
+            var candidateDemands = await _demands.FindAsync(d => d.CropType == listing.CropType && d.Status == "Open");
 
             foreach (var demand in candidateDemands)
             {
@@ -216,13 +196,11 @@ public class MatchesController : ControllerBase
 
     private async Task GenerateMatchesForBuyerAsync(string buyerId, int searchRadiusKm)
     {
-        var myDemands = await QueryAsync(_demands.Container.GetItemLinqQueryable<DemandRequest>()
-            .Where(d => d.BuyerId == buyerId && d.Status == "Open"));
+        var myDemands = await _demands.FindAsync(d => d.BuyerId == buyerId && d.Status == "Open");
 
         foreach (var demand in myDemands)
         {
-            var candidateListings = await QueryAsync(_listings.Container.GetItemLinqQueryable<Listing>()
-                .Where(l => l.CropType == demand.CropType && l.Status == "Active"));
+            var candidateListings = await _listings.FindAsync(l => l.CropType == demand.CropType && l.Status == "Active");
 
             foreach (var listing in candidateListings)
             {
@@ -237,7 +215,7 @@ public class MatchesController : ControllerBase
         if (score is null) return;
 
         var deterministicId = $"{listing.Id}:{demand.Id}";
-        var existing = await _matches.GetByIdAsync(deterministicId, deterministicId);
+        var existing = await _matches.GetByIdAsync(deterministicId);
 
         var match = existing ?? new MatchDocument
         {
@@ -261,17 +239,6 @@ public class MatchesController : ControllerBase
             RelevantDate = listing.HarvestDate
         };
 
-        await _matches.UpsertAsync(match, deterministicId);
-    }
-
-    private static async Task<List<T>> QueryAsync<T>(IQueryable<T> query)
-    {
-        var results = new List<T>();
-        using var iterator = query.ToFeedIterator();
-        while (iterator.HasMoreResults)
-        {
-            results.AddRange(await iterator.ReadNextAsync());
-        }
-        return results;
+        await _matches.UpsertAsync(match);
     }
 }

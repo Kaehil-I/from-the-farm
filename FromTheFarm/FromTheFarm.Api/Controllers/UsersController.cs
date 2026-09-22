@@ -10,9 +10,9 @@ namespace FromTheFarm.Api.Controllers;
 [Authorize]
 public class UsersController : ControllerBase
 {
-    private readonly CosmosRepository<UserProfile> _users;
+    private readonly IMongoRepository<UserProfile> _users;
 
-    public UsersController(CosmosRepository<UserProfile> users)
+    public UsersController(IMongoRepository<UserProfile> users)
     {
         _users = users;
     }
@@ -29,7 +29,7 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<UserProfile>> GetMyProfile()
     {
         var uid = User.GetFirebaseUid();
-        var profile = await _users.GetByIdAsync(uid, uid);
+        var profile = await _users.GetByIdAsync(uid);
 
         return profile is null ? NotFound() : Ok(profile);
     }
@@ -39,13 +39,18 @@ public class UsersController : ControllerBase
     [HttpPut("me")]
     public async Task<ActionResult<UserProfile>> UpdateMyProfile([FromBody] UpdateProfileRequest request)
     {
-        if (request.SearchRadiusKm is < 1 or > 100)
+        var invalid = RequestValidation.Role(request.Role)
+            ?? RequestValidation.Language(request.Language)
+            ?? RequestValidation.SearchRadiusKm(request.SearchRadiusKm)
+            ?? RequestValidation.Phone(request.Phone);
+
+        if (invalid is not null)
         {
-            return BadRequest("searchRadiusKm must be between 1 and 100.");
+            return BadRequest(invalid);
         }
 
         var uid = User.GetFirebaseUid();
-        var existing = await _users.GetByIdAsync(uid, uid);
+        var existing = await _users.GetByIdAsync(uid);
         if (existing is null)
         {
             return NotFound("Call POST /auth/session before updating a profile.");
@@ -56,9 +61,12 @@ public class UsersController : ControllerBase
         existing.SearchRadiusKm = request.SearchRadiusKm;
         existing.NotificationsEnabled = request.NotificationsEnabled;
         existing.BiometricLockEnabled = request.BiometricLockEnabled;
-        existing.Phone = request.Phone;
 
-        var updated = await _users.UpsertAsync(existing, uid);
+        // A cleared field arrives as an empty string from the form; store it as
+        // absent so "no number shared" is one value rather than two.
+        existing.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+
+        var updated = await _users.UpsertAsync(existing);
         return Ok(updated);
     }
 }

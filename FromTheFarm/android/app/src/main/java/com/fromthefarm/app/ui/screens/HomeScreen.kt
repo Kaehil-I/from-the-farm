@@ -14,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.fromthefarm.app.data.Listing
+import com.fromthefarm.app.data.PreviewListing
 import com.fromthefarm.app.data.SampleData
 import com.fromthefarm.app.ui.theme.*
 
@@ -48,15 +48,15 @@ fun HomeScreen(onOpenMatch: (String) -> Unit = {}) {
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(SampleData.nearbyMatches) { listing ->
-                MatchCard(listing, onClick = { onOpenMatch(listing.id) })
+            items(SampleData.nearbyMatches) { PreviewListing ->
+                MatchCard(PreviewListing, onClick = { onOpenMatch(PreviewListing.id) })
             }
         }
     }
 }
 
 @Composable
-private fun MatchCard(listing: Listing, onClick: () -> Unit) {
+private fun MatchCard(PreviewListing: PreviewListing, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
@@ -74,8 +74,8 @@ private fun MatchCard(listing: Listing, onClick: () -> Unit) {
             )
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text("${listing.cropName} · ${listing.quantityKg}kg", style = MaterialTheme.typography.bodyMedium, color = FarmTextPrimary)
-                Text("${listing.distanceKm}km away", style = MaterialTheme.typography.bodySmall, color = FarmTextMuted)
+                Text("${PreviewListing.cropName} · ${PreviewListing.quantityKg}kg", style = MaterialTheme.typography.bodyMedium, color = FarmTextPrimary)
+                Text("${PreviewListing.distanceKm}km away", style = MaterialTheme.typography.bodySmall, color = FarmTextMuted)
             }
         }
     }
@@ -86,3 +86,4 @@ private fun MatchCard(listing: Listing, onClick: () -> Unit) {
 private fun HomeScreenPreview() {
     FromTheFarmTheme { HomeScreen() }
 }
+
