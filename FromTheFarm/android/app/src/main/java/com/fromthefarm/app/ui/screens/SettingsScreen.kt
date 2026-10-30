@@ -50,7 +50,7 @@ private fun SettingsRow(label: String, labelColor: androidx.compose.ui.graphics.
         Text(label, style = MaterialTheme.typography.bodyMedium, color = labelColor)
         trailing()
     }
-    Divider(color = FarmBorder, thickness = 0.5.dp)
+    HorizontalDivider(color = FarmBorder, thickness = 0.5.dp)
 }
 
 @Preview(showBackground = true)

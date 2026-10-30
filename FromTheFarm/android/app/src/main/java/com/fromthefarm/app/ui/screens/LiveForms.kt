@@ -79,13 +79,13 @@ fun RecordEditor(demand: Boolean, id: String?, listing: Listing?, request: Deman
     }) { Text(if (busy) "Saving…" else "Save") }
     if (showDatePicker) {
         val selected = runCatching { LocalDate.parse(date).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
-        val picker = rememberDatePickerState(initialSelectedDateMillis = selected)
+        val datePicker = rememberDatePickerState(initialSelectedDateMillis = selected)
         DatePickerDialog(onDismissRequest = { showDatePicker = false }, confirmButton = {
-            TextButton(enabled = picker.selectedDateMillis != null, onClick = {
-                picker.selectedDateMillis?.let { date = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString() }
+            TextButton(enabled = datePicker.selectedDateMillis != null, onClick = {
+                datePicker.selectedDateMillis?.let { date = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString() }
                 showDatePicker = false
             }) { Text("Use date") }
-        }, dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancel") } }) { DatePicker(state = picker) }
+        }, dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("Cancel") } }) { DatePicker(state = datePicker) }
     }
 }
 

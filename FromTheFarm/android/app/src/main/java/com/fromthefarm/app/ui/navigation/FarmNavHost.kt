@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -77,7 +78,7 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
     BackHandler(editor != null || matchId != null) { if (!state.busy) { editor = null; matchId = null } }
     Scaffold(bottomBar = {
         if (onboarded && editor == null && matchId == null) NavigationBar {
-            listOf("Home" to Icons.Default.Home, "Listings" to Icons.Default.List,
+            listOf("Home" to Icons.Default.Home, "Listings" to Icons.AutoMirrored.Filled.List,
                 "Calendar" to Icons.Default.CalendarToday, "Settings" to Icons.Default.Settings).forEach { (name, icon) ->
                 NavigationBarItem(selected = tab == name, enabled = !state.busy, onClick = { tab = name },
                     icon = { Icon(icon, name) }, label = { Text(if (name == "Listings" && !farmer) "Demand" else name) })
