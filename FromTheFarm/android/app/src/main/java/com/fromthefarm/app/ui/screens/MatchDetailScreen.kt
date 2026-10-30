@@ -62,9 +62,9 @@ fun MatchDetailScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
-            RatingButton(Icons.Filled.ThumbUp, onRateUp, tint = FarmGreen)
+            RatingButton(Icons.Filled.ThumbUp, "Rate this exchange positively", onRateUp, tint = FarmGreen)
             Spacer(Modifier.width(12.dp))
-            RatingButton(Icons.Filled.ThumbDown, onRateDown, tint = FarmTextMuted)
+            RatingButton(Icons.Filled.ThumbDown, "Rate this exchange negatively", onRateDown, tint = FarmTextMuted)
         }
     }
 }
@@ -84,7 +84,8 @@ private fun InfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, text:
 }
 
 @Composable
-private fun RatingButton(icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit, tint: androidx.compose.ui.graphics.Color) {
+private fun RatingButton(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String,
+    onClick: () -> Unit, tint: androidx.compose.ui.graphics.Color) {
     Box(
         modifier = Modifier
             .size(44.dp)
@@ -92,7 +93,7 @@ private fun RatingButton(icon: androidx.compose.ui.graphics.vector.ImageVector, 
         contentAlignment = Alignment.Center
     ) {
         IconButton(onClick = onClick) {
-            Icon(icon, contentDescription = null, tint = tint)
+            Icon(icon, contentDescription = description, tint = tint)
         }
     }
 }
