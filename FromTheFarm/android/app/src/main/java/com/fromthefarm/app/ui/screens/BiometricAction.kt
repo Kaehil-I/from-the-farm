@@ -43,17 +43,26 @@ fun BiometricAction(label: String, enabled: Boolean, success: () -> Unit, error:
     }
     DisposableEffect(prompt) { onDispose { if (prompting) prompt?.cancelAuthentication() } }
     Button(enabled = enabled && !prompting, onClick = {
-        val available = BiometricManager.from(context).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+        // Class 2+ accepts Android-supported fingerprint and face authentication.
+        // Requiring BIOMETRIC_STRONG alone excludes face unlock on many valid devices.
+        val authenticators = BiometricManager.Authenticators.BIOMETRIC_WEAK
+        val available = BiometricManager.from(context).canAuthenticate(authenticators)
         if (available != BiometricManager.BIOMETRIC_SUCCESS || prompt == null) {
-            onError(if (available == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED)
-                "Add a fingerprint or supported face unlock in Android Settings first."
-                else "Strong biometrics are unavailable on this device. You can use Google sign-in.")
+            onError(when (available) {
+                BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED ->
+                    "Add a fingerprint or supported face unlock in Android Settings first."
+                BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
+                    "This device does not have supported biometric hardware. You can use Google sign-in."
+                BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ->
+                    "Biometric hardware is temporarily unavailable. Try again or use Google sign-in."
+                else -> "Biometric authentication is unavailable on this device. You can use Google sign-in."
+            })
         } else {
             prompting = true
             prompt.authenticate(BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Unlock From The Farm")
                 .setSubtitle("Verify your identity on this device")
-                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                .setAllowedAuthenticators(authenticators)
                 .setNegativeButtonText("Cancel").build())
         }
     }) { Text(label) }
