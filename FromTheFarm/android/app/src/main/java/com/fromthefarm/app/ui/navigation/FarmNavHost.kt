@@ -21,6 +21,7 @@ import com.fromthefarm.app.ui.screens.ProfileEditor
 import com.fromthefarm.app.ui.screens.NearbyFilter
 import com.fromthefarm.app.ui.screens.ListingPhoto
 import com.fromthefarm.app.ui.screens.BiometricAction
+import com.fromthefarm.app.ui.screens.LanguagePicker
 import kotlin.math.roundToInt
 import java.time.Instant
 import java.time.ZoneOffset
@@ -218,6 +219,8 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
                     }
                     "Settings" -> {
                         ProfileEditor(profile, state.busy, false, vm::saveProfile)
+                        HorizontalDivider()
+                        LanguagePicker()
                         HorizontalDivider()
                         Text("Device security", style = MaterialTheme.typography.titleMedium)
                         if (!state.biometricEnabled) BiometricAction("Enable biometric unlock on this device", !state.busy, vm::enableBiometrics, vm::biometricError)
