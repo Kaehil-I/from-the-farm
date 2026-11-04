@@ -1,4 +1,113 @@
 <resources>
     <string name="app_name">From The Farm</string>
     <string name="language_title">Ulimi</string>
+
+    <!-- Navigation -->
+    <string name="tab_home">Ikhaya</string>
+    <string name="tab_listings">Uhlu</string>
+    <string name="tab_demand">Isidingo</string>
+    <string name="tab_calendar">Ikhalenda</string>
+    <string name="tab_settings">Izilungiselelo</string>
+
+    <!-- Common actions -->
+    <string name="back">Emuva</string>
+    <string name="cancel">Khansela</string>
+    <string name="edit">Hlela</string>
+    <string name="remove">Susa</string>
+    <string name="refresh">Vuselela</string>
+    <string name="sign_out">Phuma</string>
+
+    <!-- Status labels (values come from the API) -->
+    <string name="status_suggested">Kuphakanyisiwe</string>
+    <string name="status_confirmed">Kuqinisekisiwe</string>
+    <string name="status_completed">Kuqediwe</string>
+    <string name="status_matched">Kufanisiwe</string>
+    <string name="status_open">Kuvuliwe</string>
+    <string name="status_active">Kuyasebenza</string>
+    <string name="status_expired">Kuphelelwe yisikhathi</string>
+    <string name="status_deleted">Kususiwe</string>
+
+    <!-- Locked screen -->
+    <string name="locked_title">I-From The Farm ikhiyiwe</string>
+    <string name="locked_body">Vula iseshini yakho egciniwe ye-Google ngesigxivizo somunwe noma ukubonwa kobuso okusekelwayo.</string>
+    <string name="unlock_biometrics">Vula nge-biometrics</string>
+    <string name="use_google_instead">Sebenzisa i-Google esikhundleni</string>
+
+    <!-- Sign-in and profile -->
+    <string name="app_heading">Evela epulazini</string>
+    <string name="google_signin_succeeded">Ukungena nge-Google kuphumelele.</string>
+    <string name="profile_load_failed">Iphrofayela yakho yepulazi ayikalayishwa. Zama futhi uma isevisi iyatholakala.</string>
+    <string name="retry_profile">Zama ukulayisha iphrofayela futhi</string>
+    <string name="tagline">Xhumana. Lima. Thengisa.</string>
+    <string name="signin_prompt">Ngena noma udale i-akhawunti yakho nge-Google ukuze uxhumane nabalimi nabathengi basendaweni.</string>
+    <string name="continue_google">Qhubeka nge-Google</string>
+    <string name="retry_saved_session">Zama iseshini egciniwe futhi</string>
+
+    <!-- Biometrics -->
+    <string name="enable_biometric_unlock">Nika amandla ukuvula nge-biometrics</string>
+    <string name="enable_biometric_device">Nika amandla ukuvula nge-biometrics kule divayisi</string>
+    <string name="turn_off_biometric">Vala ukuvula nge-biometrics</string>
+    <string name="lock_app">Khiya i-app</string>
+    <string name="device_security">Ukuphepha kwedivayisi</string>
+    <string name="biometric_note">Ukuvula nge-biometrics kubhaliswe kule divayisi kuphela, ngakho akulandeli i-akhawunti yakho kwenye ifoni.</string>
+
+    <!-- Records -->
+    <string name="record_unavailable">Irekhodi alitholakali. Buyela kumarekhodi akho bese uvuselela.</string>
+    <string name="remove_title">Susa leli rekhodi?</string>
+    <string name="remove_text">Ngeke lisabonakala kumarekhodi akho asebenzayo.</string>
+
+    <!-- Match details -->
+    <string name="back_to_matches">Buyela ekufaniseni</string>
+    <string name="match_details">Imininingwane yokufaniswa</string>
+    <string name="fit_status">%1$d%% ukufana · %2$s</string>
+    <string name="contact_name_unavailable">Igama loxhumana naye alitholakali</string>
+    <string name="no_phone_shared">Alukho unombolo yocingo olwabiwe.</string>
+    <string name="contact_after_confirm">Ulwazi lokuxhumana lwabiwa ngemuva kokuqinisekiswa.</string>
+    <string name="confirm_match">Qinisekisa ukufaniswa</string>
+    <string name="mark_completed">Maka ukushintshana kuqediwe</string>
+    <string name="thumbs_up">Isithupha phezulu</string>
+    <string name="thumbs_down">Isithupha phansi</string>
+    <string name="complete_title">Qeda lokhu kushintshana?</string>
+    <string name="complete_text">Qinisekisa ukuthi ukushintshana kwesivuno sekwenzekile. Ungasinikeza isilinganiso ngemuva kwalokho.</string>
+    <string name="complete_exchange">Qeda ukushintshana</string>
+    <string name="already_rated">Usulinganise lokhu kushintshana.</string>
+    <string name="refresh_details">Vuselela imininingwane</string>
+
+    <!-- Home -->
+    <string name="home_title_farmer">Ukufaniswa kwakho</string>
+    <string name="home_title_buyer">Imikhiqizo ehambisana nezidingo zakho</string>
+    <string name="home_sub_farmer">Kulandelelwe ngesivuno, ibanga, inani nesikhathi sokuvuna.</string>
+    <string name="home_sub_buyer">Imikhiqizo ehambisana nesidingo esivulekile ivela kuqala, kungakhathaliseki usayizi wezinhlamvu.</string>
+    <string name="no_matches_farmer">Akukho ukufaniswa okwamanje. Engeza uhlu bese uvuselela.</string>
+    <string name="no_recommendations">Akukho mikhiqizo etholakalayo okwamanje ehambisana negama lesivuno sesidingo esivulekile.</string>
+    <string name="other_products_within">Eminye imikhiqizo engaphakathi kwama-%1$s km</string>
+    <string name="create_open_demand_hint">Dala isidingo esivulekile ukuze usebenzise indawo yaso ekutholeni imikhiqizo eseduze.</string>
+    <string name="no_nearby">Ayikho eminye imikhiqizo etholakala ebangeni olilungisile.</string>
+    <string name="active_matches">Ukufaniswa kwakho okusebenzayo</string>
+    <string name="needed_by">Kudingeka ngo-%1$s</string>
+    <string name="harvest_label">Isivuno: %1$s</string>
+    <string name="view_match">Buka ukufaniswa</string>
+
+    <!-- Listings and demands -->
+    <string name="listings_farmer">Uhlu lwami</string>
+    <string name="listings_buyer">Izicelo zami zezidingo</string>
+    <string name="add_listing">Engeza uhlu</string>
+    <string name="post_demand">Thumela isidingo</string>
+    <string name="no_active_listings">Awunazo izinhlu ezisebenzayo.</string>
+    <string name="no_open_demands">Awunazo izicelo zezidingo ezivulekile.</string>
+    <string name="available_produce">Isivuno esitholakalayo</string>
+    <string name="find_nearby">Thola isivuno esiseduze</string>
+    <string name="nearby_results">Imiphumela eseduze</string>
+    <string name="no_nearby_results">Azikho izinhlu zesivuno ezisebenzayo ezitholwe zalesi sivuno nale ndawo. Zama ibanga elikhulu noma esinye isivuno.</string>
+    <string name="available_qty">Kuyatholakala: %1$s %2$s</string>
+    <string name="harvest_date">Usuku lokuvuna: %1$s</string>
+    <string name="km_from_demand">%1$s km ukusuka endaweni yesidingo sakho</string>
+    <string name="km_away">%1$s km ukude</string>
+    <string name="matches_request">Ihambisana nesicelo sakho se-%1$s %2$s ngo-%3$s</string>
+
+    <!-- Calendar -->
+    <string name="harvest_calendar">Ikhalenda yokuvuna</string>
+    <string name="calendar_hint">Khetha usuku ukuze ubone isivuno esitholakalayo ngalolo suku.</string>
+    <string name="select_date">Khetha usuku ekhalendeni.</string>
+    <string name="no_produce_date">Alukho isivuno esihlelelwe lolu suku.</string>
 </resources>

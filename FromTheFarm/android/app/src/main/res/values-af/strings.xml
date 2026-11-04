@@ -1,4 +1,113 @@
 <resources>
     <string name="app_name">From The Farm</string>
     <string name="language_title">Taal</string>
+
+    <!-- Navigation -->
+    <string name="tab_home">Tuis</string>
+    <string name="tab_listings">Lyste</string>
+    <string name="tab_demand">Aanvraag</string>
+    <string name="tab_calendar">Kalender</string>
+    <string name="tab_settings">Instellings</string>
+
+    <!-- Common actions -->
+    <string name="back">Terug</string>
+    <string name="cancel">Kanselleer</string>
+    <string name="edit">Wysig</string>
+    <string name="remove">Verwyder</string>
+    <string name="refresh">Verfris</string>
+    <string name="sign_out">Teken uit</string>
+
+    <!-- Status labels (values come from the API) -->
+    <string name="status_suggested">Voorgestel</string>
+    <string name="status_confirmed">Bevestig</string>
+    <string name="status_completed">Voltooi</string>
+    <string name="status_matched">Gepas</string>
+    <string name="status_open">Oop</string>
+    <string name="status_active">Aktief</string>
+    <string name="status_expired">Verval</string>
+    <string name="status_deleted">Verwyder</string>
+
+    <!-- Locked screen -->
+    <string name="locked_title">From The Farm is gesluit</string>
+    <string name="locked_body">Ontsluit jou gestoorde Google-sessie met jou vingerafdruk of ondersteunde gesigsherkenning.</string>
+    <string name="unlock_biometrics">Ontsluit met biometrie</string>
+    <string name="use_google_instead">Gebruik eerder Google</string>
+
+    <!-- Sign-in and profile -->
+    <string name="app_heading">Van die plaas</string>
+    <string name="google_signin_succeeded">Google-aanmelding was suksesvol.</string>
+    <string name="profile_load_failed">Jou plaasprofiel kon nog nie gelaai word nie. Probeer weer wanneer die diens beskikbaar is.</string>
+    <string name="retry_profile">Probeer profiel weer laai</string>
+    <string name="tagline">Konnekteer. Kweek. Verkoop.</string>
+    <string name="signin_prompt">Meld aan of skep jou rekening met Google om met plaaslike boere en kopers te skakel.</string>
+    <string name="continue_google">Gaan voort met Google</string>
+    <string name="retry_saved_session">Probeer gestoorde sessie weer</string>
+
+    <!-- Biometrics -->
+    <string name="enable_biometric_unlock">Aktiveer biometriese ontsluiting</string>
+    <string name="enable_biometric_device">Aktiveer biometriese ontsluiting op hierdie toestel</string>
+    <string name="turn_off_biometric">Skakel biometriese ontsluiting af</string>
+    <string name="lock_app">Sluit app</string>
+    <string name="device_security">Toestelsekuriteit</string>
+    <string name="biometric_note">Biometriese ontsluiting word slegs op hierdie toestel geregistreer en volg dus nie jou rekening na \'n ander foon nie.</string>
+
+    <!-- Records -->
+    <string name="record_unavailable">Die rekord is nie beskikbaar nie. Gaan terug na jou rekords en verfris.</string>
+    <string name="remove_title">Verwyder hierdie rekord?</string>
+    <string name="remove_text">Dit sal nie meer in jou aktiewe rekords verskyn nie.</string>
+
+    <!-- Match details -->
+    <string name="back_to_matches">Terug na passings</string>
+    <string name="match_details">Passingbesonderhede</string>
+    <string name="fit_status">%1$d%% pas · %2$s</string>
+    <string name="contact_name_unavailable">Kontaknaam nie beskikbaar nie</string>
+    <string name="no_phone_shared">Geen foonnommer is gedeel nie.</string>
+    <string name="contact_after_confirm">Kontakinligting word ná bevestiging gedeel.</string>
+    <string name="confirm_match">Bevestig passing</string>
+    <string name="mark_completed">Merk ruil as voltooi</string>
+    <string name="thumbs_up">Duim op</string>
+    <string name="thumbs_down">Duim af</string>
+    <string name="complete_title">Voltooi hierdie ruil?</string>
+    <string name="complete_text">Bevestig dat die produkruil plaasgevind het. Jy kan dit daarna beoordeel.</string>
+    <string name="complete_exchange">Voltooi ruil</string>
+    <string name="already_rated">Jy het hierdie ruil beoordeel.</string>
+    <string name="refresh_details">Verfris besonderhede</string>
+
+    <!-- Home -->
+    <string name="home_title_farmer">Jou passings</string>
+    <string name="home_title_buyer">Produkte wat by jou aanvrae pas</string>
+    <string name="home_sub_farmer">Gerangskik volgens gewas, afstand, hoeveelheid en oestyd.</string>
+    <string name="home_sub_buyer">Produkte wat by \'n oop aanvraag pas, verskyn eerste, ongeag hoofletters.</string>
+    <string name="no_matches_farmer">Nog geen passings nie. Voeg \'n lys by en verfris dan.</string>
+    <string name="no_recommendations">Geen beskikbare produkte pas tans by die gewasnaam van \'n oop aanvraag nie.</string>
+    <string name="other_products_within">Ander produkte binne %1$s km</string>
+    <string name="create_open_demand_hint">Skep \'n oop aanvraag om die ligging daarvan vir produkte in die omgewing te gebruik.</string>
+    <string name="no_nearby">Geen ander produkte is binne jou ingestelde reikafstand beskikbaar nie.</string>
+    <string name="active_matches">Jou aktiewe passings</string>
+    <string name="needed_by">Benodig teen: %1$s</string>
+    <string name="harvest_label">Oes: %1$s</string>
+    <string name="view_match">Bekyk passing</string>
+
+    <!-- Listings and demands -->
+    <string name="listings_farmer">My lyste</string>
+    <string name="listings_buyer">My aanvrae</string>
+    <string name="add_listing">Voeg lys by</string>
+    <string name="post_demand">Plaas aanvraag</string>
+    <string name="no_active_listings">Jy het geen aktiewe lyste nie.</string>
+    <string name="no_open_demands">Jy het geen oop aanvrae nie.</string>
+    <string name="available_produce">Beskikbare produkte</string>
+    <string name="find_nearby">Vind produkte in die omgewing</string>
+    <string name="nearby_results">Resultate in die omgewing</string>
+    <string name="no_nearby_results">Geen aktiewe produklyste is vir hierdie gewas en ligging gevind nie. Probeer \'n groter radius of \'n ander gewas.</string>
+    <string name="available_qty">Beskikbaar: %1$s %2$s</string>
+    <string name="harvest_date">Oesdatum: %1$s</string>
+    <string name="km_from_demand">%1$s km van jou aanvraagligging</string>
+    <string name="km_away">%1$s km ver</string>
+    <string name="matches_request">Pas by jou versoek vir %1$s %2$s teen %3$s</string>
+
+    <!-- Calendar -->
+    <string name="harvest_calendar">Oeskalender</string>
+    <string name="calendar_hint">Kies \'n datum om te sien watter produkte daardie dag beskikbaar is.</string>
+    <string name="select_date">Kies \'n datum op die kalender.</string>
+    <string name="no_produce_date">Geen produkte is vir hierdie datum geskeduleer nie.</string>
 </resources>
