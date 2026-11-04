@@ -1,4 +1,113 @@
 <resources>
     <string name="app_name">From The Farm</string>
     <string name="language_title">Language</string>
+
+    <!-- Navigation -->
+    <string name="tab_home">Home</string>
+    <string name="tab_listings">Listings</string>
+    <string name="tab_demand">Demand</string>
+    <string name="tab_calendar">Calendar</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Common actions -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="edit">Edit</string>
+    <string name="remove">Remove</string>
+    <string name="refresh">Refresh</string>
+    <string name="sign_out">Sign out</string>
+
+    <!-- Status labels (values come from the API) -->
+    <string name="status_suggested">Suggested</string>
+    <string name="status_confirmed">Confirmed</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_matched">Matched</string>
+    <string name="status_open">Open</string>
+    <string name="status_active">Active</string>
+    <string name="status_expired">Expired</string>
+    <string name="status_deleted">Deleted</string>
+
+    <!-- Locked screen -->
+    <string name="locked_title">From The Farm is locked</string>
+    <string name="locked_body">Unlock your saved Google session with your fingerprint or supported face recognition.</string>
+    <string name="unlock_biometrics">Unlock with biometrics</string>
+    <string name="use_google_instead">Use Google instead</string>
+
+    <!-- Sign-in and profile -->
+    <string name="app_heading">From the farm</string>
+    <string name="google_signin_succeeded">Google sign-in succeeded.</string>
+    <string name="profile_load_failed">Your farm profile could not be loaded yet. Retry when the service is available.</string>
+    <string name="retry_profile">Retry loading profile</string>
+    <string name="tagline">Connect. Grow. Sell.</string>
+    <string name="signin_prompt">Sign in or create your account with Google to connect with local farmers and buyers.</string>
+    <string name="continue_google">Continue with Google</string>
+    <string name="retry_saved_session">Retry saved session</string>
+
+    <!-- Biometrics -->
+    <string name="enable_biometric_unlock">Enable biometric unlock</string>
+    <string name="enable_biometric_device">Enable biometric unlock on this device</string>
+    <string name="turn_off_biometric">Turn off biometric unlock</string>
+    <string name="lock_app">Lock app</string>
+    <string name="device_security">Device security</string>
+    <string name="biometric_note">Biometric unlock is enrolled on this device only, so it does not follow your account to another phone.</string>
+
+    <!-- Records -->
+    <string name="record_unavailable">The record is not available. Return to your records and refresh.</string>
+    <string name="remove_title">Remove this record?</string>
+    <string name="remove_text">It will no longer appear in your active records.</string>
+
+    <!-- Match details -->
+    <string name="back_to_matches">Back to matches</string>
+    <string name="match_details">Match details</string>
+    <string name="fit_status">%1$d%% fit · %2$s</string>
+    <string name="contact_name_unavailable">Contact name unavailable</string>
+    <string name="no_phone_shared">No phone number has been shared.</string>
+    <string name="contact_after_confirm">Contact information is shared after confirmation.</string>
+    <string name="confirm_match">Confirm match</string>
+    <string name="mark_completed">Mark exchange completed</string>
+    <string name="thumbs_up">Thumbs up</string>
+    <string name="thumbs_down">Thumbs down</string>
+    <string name="complete_title">Complete this exchange?</string>
+    <string name="complete_text">Confirm that the produce exchange has taken place. You can rate it afterwards.</string>
+    <string name="complete_exchange">Complete exchange</string>
+    <string name="already_rated">You have rated this exchange.</string>
+    <string name="refresh_details">Refresh details</string>
+
+    <!-- Home -->
+    <string name="home_title_farmer">Your matches</string>
+    <string name="home_title_buyer">Products matching your demands</string>
+    <string name="home_sub_farmer">Ranked by crop, distance, quantity and harvest timing.</string>
+    <string name="home_sub_buyer">Products matching an open demand appear first, regardless of capitalization.</string>
+    <string name="no_matches_farmer">No matches yet. Add a listing, then refresh.</string>
+    <string name="no_recommendations">No available products currently match the crop name of an open demand.</string>
+    <string name="other_products_within">Other products within %1$s km</string>
+    <string name="create_open_demand_hint">Create an open demand to use its location for nearby products.</string>
+    <string name="no_nearby">No other products are available within your configured range.</string>
+    <string name="active_matches">Your active matches</string>
+    <string name="needed_by">Needed by: %1$s</string>
+    <string name="harvest_label">Harvest: %1$s</string>
+    <string name="view_match">View match</string>
+
+    <!-- Listings and demands -->
+    <string name="listings_farmer">My listings</string>
+    <string name="listings_buyer">My demand requests</string>
+    <string name="add_listing">Add listing</string>
+    <string name="post_demand">Post demand</string>
+    <string name="no_active_listings">You have no active listings.</string>
+    <string name="no_open_demands">You have no open demand requests.</string>
+    <string name="available_produce">Available produce</string>
+    <string name="find_nearby">Find nearby produce</string>
+    <string name="nearby_results">Nearby results</string>
+    <string name="no_nearby_results">No active produce listings were found for this crop and location. Try a larger radius or another crop.</string>
+    <string name="available_qty">Available: %1$s %2$s</string>
+    <string name="harvest_date">Harvest date: %1$s</string>
+    <string name="km_from_demand">%1$s km from your demand location</string>
+    <string name="km_away">%1$s km away</string>
+    <string name="matches_request">Matches your request for %1$s %2$s by %3$s</string>
+
+    <!-- Calendar -->
+    <string name="harvest_calendar">Harvest calendar</string>
+    <string name="calendar_hint">Select a date to see produce available on that day.</string>
+    <string name="select_date">Select a date on the calendar.</string>
+    <string name="no_produce_date">No produce is scheduled for this date.</string>
 </resources>
