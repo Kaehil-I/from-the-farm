@@ -11,7 +11,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.fromthefarm.app.notifications.MatchNotifications
 import com.fromthefarm.app.notifications.NotificationRules
 import kotlinx.coroutines.launch
-import androidx.fragment.app.FragmentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.viewModels
 import com.fromthefarm.app.ui.FarmViewModel
 import androidx.activity.compose.setContent
@@ -21,7 +21,7 @@ import androidx.compose.ui.Modifier
 import com.fromthefarm.app.ui.navigation.FarmNavHost
 import com.fromthefarm.app.ui.theme.FromTheFarmTheme
 
-class MainActivity : FragmentActivity() {
+class MainActivity : AppCompatActivity() {
     private val farmViewModel: FarmViewModel by viewModels { FarmViewModel.factory(applicationContext) }
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 

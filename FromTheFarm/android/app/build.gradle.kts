@@ -53,6 +53,7 @@ android {
 }
 
 dependencies {
+    implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.biometric:biometric:1.1.0")
     // Offline storage and background sync. Room 2.6.x is the last line that builds with Kotlin 1.9.
     implementation("androidx.room:room-runtime:2.6.1")
