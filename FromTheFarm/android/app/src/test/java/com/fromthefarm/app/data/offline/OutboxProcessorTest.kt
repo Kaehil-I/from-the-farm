@@ -8,19 +8,28 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
-import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 class OutboxProcessorTest {
     private val server = MockWebServer()
+    // Set to make the next response vanish on its way back to the app: the server has already handled
+    // the request, but the app only sees a network error. Done here, not with a socket policy on the
+    // mock server, because how a mock server drops a socket differs between operating systems.
+    private var loseNextResponse = false
     // Same retry setting as the real client: a dropped connection surfaces as an error instead of a silent resend.
     private val client = OkHttpClient.Builder().retryOnConnectionFailure(false)
-        .connectTimeout(2, TimeUnit.SECONDS).readTimeout(2, TimeUnit.SECONDS).build()
+        .connectTimeout(2, TimeUnit.SECONDS).readTimeout(2, TimeUnit.SECONDS)
+        .addInterceptor { chain ->
+            val response = chain.proceed(chain.request())
+            if (loseNextResponse) { loseNextResponse = false; response.close(); throw IOException("connection lost") }
+            response
+        }.build()
     private val api = Retrofit.Builder().baseUrl(server.url("/api/v1/")).client(client)
         .addConverterFactory(GsonConverterFactory.create()).build().create(FarmApi::class.java)
     private val store = InMemoryOfflineStore()
@@ -48,9 +57,12 @@ class OutboxProcessorTest {
         assertTrue(store.pending("u1").isEmpty())
     }
 
-    @Test fun droppedConnectionKeepsTheRecordAndTheRetryReusesItsId() = runBlocking {
+    @Test fun lostResponseKeepsTheRecordAndTheRetryReusesItsId() = runBlocking {
         queue("abc", createdAt = 1)
-        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        // The server handles the request, but the answer never reaches the app: the record may already
+        // be stored and the phone cannot know.
+        server.enqueue(MockResponse().setBody(created))
+        loseNextResponse = true
 
         val first = OutboxProcessor(store, api).drain("u1", token)
         assertEquals(DrainResult(0, DrainOutcome.RETRY_LATER), first)
@@ -60,9 +72,9 @@ class OutboxProcessorTest {
         server.enqueue(MockResponse().setBody(created))
         val second = OutboxProcessor(store, api).drain("u1", token)
         assertEquals(DrainResult(1, DrainOutcome.DONE), second)
-        // The server may or may not log the dropped attempt; the last request it saw is the retry.
-        repeat(server.requestCount - 1) { server.takeRequest() }
-        assertTrue(server.takeRequest().body.readUtf8().contains("\"clientGeneratedId\":\"abc\""))
+        // Both attempts carried the same id, which is what lets the API treat the second as a repeat.
+        val attempts = listOf(server.takeRequest(5, TimeUnit.SECONDS), server.takeRequest(5, TimeUnit.SECONDS))
+        attempts.forEach { assertTrue(it!!.body.readUtf8().contains("\"clientGeneratedId\":\"abc\"")) }
         assertTrue(store.pending("u1").isEmpty())
     }
 
