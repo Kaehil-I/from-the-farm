@@ -48,9 +48,11 @@ class OutboxProcessorTest {
         assertTrue(store.pending("u1").isEmpty())
     }
 
-    @Test fun droppedConnectionKeepsTheRecordAndTheRetryReusesItsId() = runBlocking {
+    @Test fun lostResponseKeepsTheRecordAndTheRetryReusesItsId() = runBlocking {
         queue("abc", createdAt = 1)
-        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        // The server reads the whole request, then the connection drops before any answer: the case
+        // where the record may already be stored but the phone cannot know.
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
 
         val first = OutboxProcessor(store, api).drain("u1", token)
         assertEquals(DrainResult(0, DrainOutcome.RETRY_LATER), first)
@@ -60,9 +62,9 @@ class OutboxProcessorTest {
         server.enqueue(MockResponse().setBody(created))
         val second = OutboxProcessor(store, api).drain("u1", token)
         assertEquals(DrainResult(1, DrainOutcome.DONE), second)
-        // The server may or may not log the dropped attempt; the last request it saw is the retry.
-        repeat(server.requestCount - 1) { server.takeRequest() }
-        assertTrue(server.takeRequest().body.readUtf8().contains("\"clientGeneratedId\":\"abc\""))
+        // Both attempts carried the same id, which is what lets the API treat the second as a repeat.
+        val attempts = listOf(server.takeRequest(5, TimeUnit.SECONDS), server.takeRequest(5, TimeUnit.SECONDS))
+        attempts.forEach { assertTrue(it!!.body.readUtf8().contains("\"clientGeneratedId\":\"abc\"")) }
         assertTrue(store.pending("u1").isEmpty())
     }
 
