@@ -226,4 +226,24 @@
     <string name="val_deadline_past">Die sperdatum kan nie in die verlede wees nie.</string>
     <string name="val_latitude">Breedtegraad moet tussen -90 en 90 wees.</string>
     <string name="val_longitude">Lengtegraad moet tussen -180 en 180 wees.</string>
+
+    <!-- Offline sync -->
+    <string name="pending_heading">Op hierdie foon gestoor</string>
+    <string name="discard_title">Gooi gestoorde rekord weg?</string>
+    <string name="discard_text">%1$s is nog nie opgelaai nie. As jy dit weggooi, verwyder jy die enigste gestoorde kopie van hierdie foon.</string>
+    <string name="this_record">Hierdie rekord</string>
+    <string name="discard">Gooi weg</string>
+    <string name="keep">Behou</string>
+    <string name="retry">Probeer weer</string>
+    <string name="sync_offline_msg">Jy is aflyn. Nuwe lyste en aanvrae bly op hierdie foon totdat die verbinding terugkeer.</string>
+    <string name="sync_uploading">Laai gestoorde rekords op…</string>
+    <string name="sync_failed_one">1 gestoorde rekord het aandag nodig.</string>
+    <string name="sync_failed_many">%1$d gestoorde rekords het aandag nodig.</string>
+    <string name="sync_pending_one">1 rekord wag om opgelaai te word.</string>
+    <string name="sync_pending_many">%1$d rekords wag om opgelaai te word.</string>
+    <string name="sync_title_offline">Aflynmodus</string>
+    <string name="sync_title">Sinkroniseerstatus</string>
+    <string name="sync_now">Sinkroniseer nou</string>
+    <string name="upload_failed">Oplaai het misluk</string>
+    <string name="waiting_upload">Wag om opgelaai te word</string>
 </resources>

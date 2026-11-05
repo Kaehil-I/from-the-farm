@@ -226,4 +226,24 @@
     <string name="val_deadline_past">Usuku olugcina alukwazi ukuba esikhathini esidlule.</string>
     <string name="val_latitude">I-latitude kumele ibe phakathi kuka-(-90) no-90.</string>
     <string name="val_longitude">I-longitude kumele ibe phakathi kuka-(-180) no-180.</string>
+
+    <!-- Offline sync -->
+    <string name="pending_heading">Kugcinwe kule foni</string>
+    <string name="discard_title">Lahla irekhodi eligciniwe?</string>
+    <string name="discard_text">%1$s alilayishwanga. Ukulilahla kususa ikhophi eyodwa egciniwe kule foni.</string>
+    <string name="this_record">Leli rekhodi</string>
+    <string name="discard">Lahla</string>
+    <string name="keep">Yigcine</string>
+    <string name="retry">Zama futhi</string>
+    <string name="sync_offline_msg">Awuxhunyiwe ku-inthanethi. Izinhlu ezintsha nezidingo zizohlala kule foni kuze kubuye uxhumo.</string>
+    <string name="sync_uploading">Kulayishwa amarekhodi agciniwe…</string>
+    <string name="sync_failed_one">Irekhodi elilodwa eligciniwe lidinga ukunakwa.</string>
+    <string name="sync_failed_many">Amarekhodi angu-%1$d agciniwe adinga ukunakwa.</string>
+    <string name="sync_pending_one">Irekhodi elilodwa lilindele ukulayishwa.</string>
+    <string name="sync_pending_many">Amarekhodi angu-%1$d alindele ukulayishwa.</string>
+    <string name="sync_title_offline">Imodi engekho ku-inthanethi</string>
+    <string name="sync_title">Isimo sokuvumelanisa</string>
+    <string name="sync_now">Vumelanisa manje</string>
+    <string name="upload_failed">Ukulayisha kuhlulekile</string>
+    <string name="waiting_upload">Kulindele ukulayishwa</string>
 </resources>

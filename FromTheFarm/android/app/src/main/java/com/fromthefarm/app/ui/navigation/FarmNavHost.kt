@@ -19,6 +19,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fromthefarm.app.R
 import com.fromthefarm.app.data.*
+import com.fromthefarm.app.data.offline.PendingRecord
+import com.fromthefarm.app.data.offline.RecordKind
+import com.fromthefarm.app.data.offline.SyncStatus
 import com.fromthefarm.app.ui.AppLanguage
 import com.fromthefarm.app.ui.asString
 import com.fromthefarm.app.ui.FarmViewModel
@@ -59,12 +62,14 @@ private fun statusLabel(status: String): String = when (status) {
 @Composable
 fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(LocalContext.current.applicationContext))) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val sync by vm.sync.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var tab by rememberSaveable { mutableStateOf("Home") }
     var editor by rememberSaveable { mutableStateOf<String?>(null) }
     var editingId by rememberSaveable { mutableStateOf<String?>(null) }
     var matchId by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteId by remember { mutableStateOf<String?>(null) }
+    var discardPendingId by remember { mutableStateOf<String?>(null) }
     var completeId by remember { mutableStateOf<String?>(null) }
     var lastUserId by rememberSaveable { mutableStateOf<String?>(null) }
     var lastRole by rememberSaveable { mutableStateOf<String?>(null) }
@@ -132,6 +137,8 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.error?.let { Text(it.asString(), color = MaterialTheme.colorScheme.error) }
             state.message?.let { Text(it.asString(), color = MaterialTheme.colorScheme.primary) }
+            if (onboarded && (sync.offline || sync.syncing || sync.records.isNotEmpty()))
+                SyncBanner(sync.offline, sync.syncing, sync.pendingCount, sync.failedCount, vm::syncNow)
             if (profile == null && state.firebaseSignedIn) {
                 Text(stringResource(R.string.google_signin_succeeded), style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.profile_load_failed))
@@ -227,6 +234,16 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
                         Button(enabled = !state.busy, onClick = { editingId = null; demandSeedCrop = null; editor = if (farmer) "listing" else "demand" }) {
                             Text(stringResource(if (farmer) R.string.add_listing else R.string.post_demand))
                         }
+                        val pendingKind = if (farmer) RecordKind.LISTING else RecordKind.DEMAND
+                        val pendingRecords = sync.records.filter { it.kind == pendingKind }
+                        if (pendingRecords.isNotEmpty()) {
+                            Text(stringResource(R.string.pending_heading), style = MaterialTheme.typography.titleMedium)
+                            pendingRecords.forEach { record ->
+                                PendingRecordCard(record, sync.syncing, { vm.retryRecord(record.clientGeneratedId) },
+                                    { discardPendingId = record.clientGeneratedId })
+                            }
+                            HorizontalDivider()
+                        }
                         if (farmer) {
                             if (state.loaded && state.error == null && state.listings.isEmpty()) Text(stringResource(R.string.no_active_listings))
                             state.listings.forEach { item ->
@@ -278,6 +295,55 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
         text = { Text(stringResource(R.string.remove_text)) },
         confirmButton = { TextButton(onClick = { deleteId = null; vm.delete(id, !farmer) }) { Text(stringResource(R.string.remove)) } },
         dismissButton = { TextButton(onClick = { deleteId = null }) { Text(stringResource(R.string.cancel)) } }) }
+    discardPendingId?.let { id ->
+        val record = sync.records.find { it.clientGeneratedId == id }
+        AlertDialog(onDismissRequest = { discardPendingId = null },
+            title = { Text(stringResource(R.string.discard_title)) },
+            text = { Text(stringResource(R.string.discard_text, record?.title ?: stringResource(R.string.this_record))) },
+            confirmButton = { TextButton(enabled = !sync.syncing, onClick = {
+                discardPendingId = null
+                vm.discardRecord(id)
+            }) { Text(stringResource(R.string.discard)) } },
+            dismissButton = { TextButton(onClick = { discardPendingId = null }) { Text(stringResource(R.string.keep)) } })
+    }
+}
+
+@Composable
+private fun SyncBanner(offline: Boolean, syncing: Boolean, pendingCount: Int, failedCount: Int, syncNow: () -> Unit) {
+    val message = when {
+        offline -> stringResource(R.string.sync_offline_msg)
+        syncing -> stringResource(R.string.sync_uploading)
+        failedCount > 0 -> if (failedCount == 1) stringResource(R.string.sync_failed_one) else stringResource(R.string.sync_failed_many, failedCount)
+        else -> if (pendingCount == 1) stringResource(R.string.sync_pending_one) else stringResource(R.string.sync_pending_many, pendingCount)
+    }
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(if (offline) R.string.sync_title_offline else R.string.sync_title), style = MaterialTheme.typography.titleMedium)
+            Text(message)
+            if (!offline && !syncing && pendingCount > 0)
+                TextButton(onClick = syncNow) { Text(stringResource(R.string.sync_now)) }
+        }
+    }
+}
+
+@Composable
+private fun PendingRecordCard(record: PendingRecord, syncing: Boolean, retry: () -> Unit, discard: () -> Unit) {
+    val failed = record.status == SyncStatus.FAILED
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(record.title, style = MaterialTheme.typography.titleMedium)
+            Text(record.detail)
+            Text(stringResource(if (failed) R.string.upload_failed else R.string.waiting_upload),
+                color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+            if (failed) {
+                record.lastError?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                Row {
+                    TextButton(enabled = !syncing, onClick = retry) { Text(stringResource(R.string.retry)) }
+                    TextButton(enabled = !syncing, onClick = discard) { Text(stringResource(R.string.discard)) }
+                }
+            }
+        }
+    }
 }
 
 @Composable

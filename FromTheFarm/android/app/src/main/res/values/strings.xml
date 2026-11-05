@@ -226,4 +226,24 @@
     <string name="val_deadline_past">The deadline cannot be in the past.</string>
     <string name="val_latitude">Latitude must be between -90 and 90.</string>
     <string name="val_longitude">Longitude must be between -180 and 180.</string>
+
+    <!-- Offline sync -->
+    <string name="pending_heading">Saved on this phone</string>
+    <string name="discard_title">Discard saved record?</string>
+    <string name="discard_text">%1$s has not been uploaded. Discarding it removes the only saved copy from this phone.</string>
+    <string name="this_record">This record</string>
+    <string name="discard">Discard</string>
+    <string name="keep">Keep</string>
+    <string name="retry">Retry</string>
+    <string name="sync_offline_msg">You\'re offline. New listings and demands will stay on this phone until the connection returns.</string>
+    <string name="sync_uploading">Uploading saved records…</string>
+    <string name="sync_failed_one">1 saved record needs attention.</string>
+    <string name="sync_failed_many">%1$d saved records need attention.</string>
+    <string name="sync_pending_one">1 record waiting to upload.</string>
+    <string name="sync_pending_many">%1$d records waiting to upload.</string>
+    <string name="sync_title_offline">Offline mode</string>
+    <string name="sync_title">Sync status</string>
+    <string name="sync_now">Sync now</string>
+    <string name="upload_failed">Upload failed</string>
+    <string name="waiting_upload">Waiting to upload</string>
 </resources>
