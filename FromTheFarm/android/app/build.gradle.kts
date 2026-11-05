@@ -12,6 +12,10 @@ val localConfig = Properties().apply {
     val config = rootProject.file("local.properties")
     if (config.exists()) config.inputStream().use { load(it) }
 }
+// Release signing is supplied by the environment (the release workflow, or a developer's
+// own shell) and never lives in the repo. Without it the release build is simply unsigned,
+// so everyday debug builds and CI are unaffected.
+val releaseKeystorePath: String? = System.getenv("RELEASE_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
 val apiBaseUrl = providers.gradleProperty("API_BASE_URL").orElse(localConfig.getProperty("API_BASE_URL", "https://from-the-farm.onrender.com/api/v1/"))
 
 android {
@@ -22,9 +26,27 @@ android {
         applicationId = "com.fromthefarm.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1"
+        // The release workflow passes the tag as the version and its run number as the code.
+        versionCode = providers.gradleProperty("VERSION_CODE").orNull?.toIntOrNull() ?: 1
+        versionName = providers.gradleProperty("VERSION_NAME").orNull ?: "0.1"
         buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl.get().replace("\\", "\\\\").replace("\"", "\\\"")}\"")
+    }
+
+    signingConfigs {
+        if (releaseKeystorePath != null) {
+            create("release") {
+                storeFile = file(releaseKeystorePath)
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (releaseKeystorePath != null) signingConfig = signingConfigs.getByName("release")
+        }
     }
 
     buildFeatures {
