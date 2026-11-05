@@ -87,6 +87,23 @@ public class ListingsController : ControllerBase
             return BadRequest(photoError);
         }
 
+        // A create can be retried: the device was offline, the request timed out,
+        // or the response was lost on the way back. When the client supplies an id
+        // it generated, a record already carrying that id for this farmer is the
+        // same record rather than a second one, so return it untouched instead of
+        // inserting a duplicate. Without this the queue would create a new listing
+        // on every retry.
+        if (!string.IsNullOrWhiteSpace(request.ClientGeneratedId))
+        {
+            var alreadyCreated = await _listings.FindAsync(
+                l => l.FarmerId == uid && l.ClientGeneratedId == request.ClientGeneratedId);
+
+            if (alreadyCreated.Count > 0)
+            {
+                return Ok(alreadyCreated[0]);
+            }
+        }
+
         var listing = new Listing
         {
             FarmerId = uid,

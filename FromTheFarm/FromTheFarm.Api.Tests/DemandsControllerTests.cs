@@ -220,6 +220,54 @@ public class DemandsControllerTests
 
     // Callers are buyers unless a test says otherwise, so the existing ownership
     // and validation tests exercise the paths they were written for.
+    [Fact]
+    public async Task CreateDemand_ReturnsTheOriginal_WhenTheSameClientGeneratedIdArrivesTwice()
+    {
+        var already = new DemandRequest
+        {
+            Id = "demand-1",
+            BuyerId = Owner,
+            ClientGeneratedId = "device-abc",
+            CropType = "Tomatoes",
+            QuantityNeeded = 20,
+            Unit = "kg",
+            Deadline = new DateOnly(2030, 1, 1),
+            Location = new GeoLocation { Latitude = -29.85, Longitude = 31.02 }
+        };
+        var repository = new FakeRepository<DemandRequest>(already);
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.CreateDemand(Request(clientGeneratedId: "device-abc"));
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal("demand-1", Assert.IsType<DemandRequest>(ok.Value).Id);
+        Assert.Equal(0, repository.WriteCount);
+        Assert.Single(repository.Documents);
+    }
+
+    [Fact]
+    public async Task CreateDemand_TreatsAnotherBuyersClientGeneratedIdAsUnrelated()
+    {
+        var theirs = new DemandRequest
+        {
+            Id = "demand-1",
+            BuyerId = Stranger,
+            ClientGeneratedId = "device-abc",
+            CropType = "Tomatoes",
+            QuantityNeeded = 20,
+            Unit = "kg",
+            Deadline = new DateOnly(2030, 1, 1),
+            Location = new GeoLocation { Latitude = -29.85, Longitude = 31.02 }
+        };
+        var repository = new FakeRepository<DemandRequest>(theirs);
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.CreateDemand(Request(clientGeneratedId: "device-abc"));
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        Assert.Equal(2, repository.Documents.Count);
+    }
+
     private static DemandsController ControllerFor(
         FakeRepository<DemandRequest> repository, string uid, UserProfile? profile = null) =>
         new(repository, new FakeRepository<UserProfile>(profile ?? Profile(uid, "Buyer")))
@@ -233,9 +281,10 @@ public class DemandsControllerTests
         string unit = "kg",
         double latitude = -29.85,
         double longitude = 31.02,
-        DateOnly? deadline = null) =>
+        DateOnly? deadline = null,
+        string? clientGeneratedId = null) =>
         new(
-            null,
+            clientGeneratedId,
             cropType,
             quantityNeeded,
             unit,
