@@ -12,6 +12,8 @@ name: Release
 #   ANDROID_KEY_PASSWORD       the key password
 on:
   push:
+    branches:
+      - kaehil/release-workflow # TEMPORARY dry run; removed before merge
     tags:
       - "v*"
       - "*POE*"
