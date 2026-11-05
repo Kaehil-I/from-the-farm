@@ -11,23 +11,20 @@ namespace FromTheFarm.Api.Controllers;
 public class MatchesController : ControllerBase
 {
     private readonly IMongoRepository<UserProfile> _users;
-    private readonly IMongoRepository<Listing> _listings;
-    private readonly IMongoRepository<DemandRequest> _demands;
     private readonly IMongoRepository<MatchDocument> _matches;
-    private readonly MatchingService _matchingService;
+    private readonly MatchGenerationService _generation;
+    private readonly NotificationService _notifications;
 
     public MatchesController(
         IMongoRepository<UserProfile> users,
-        IMongoRepository<Listing> listings,
-        IMongoRepository<DemandRequest> demands,
         IMongoRepository<MatchDocument> matches,
-        MatchingService matchingService)
+        MatchGenerationService generation,
+        NotificationService notifications)
     {
         _users = users;
-        _listings = listings;
-        _demands = demands;
         _matches = matches;
-        _matchingService = matchingService;
+        _generation = generation;
+        _notifications = notifications;
     }
 
     public record MatchFeedItem(string MatchId, double Score, CounterpartSnapshot Counterpart, string Status);
@@ -57,11 +54,11 @@ public class MatchesController : ControllerBase
         // time, driven by a change stream on Listings and Demands.
         if (profile.Role == "Farmer")
         {
-            await GenerateMatchesForFarmerAsync(uid, profile.SearchRadiusKm);
+            await _generation.GenerateForFarmerAsync(uid, profile.SearchRadiusKm);
         }
         else
         {
-            await GenerateMatchesForBuyerAsync(uid, profile.SearchRadiusKm);
+            await _generation.GenerateForBuyerAsync(uid, profile.SearchRadiusKm);
         }
 
         var results = await _matches.FindAsync(m => m.FarmerId == uid || m.BuyerId == uid);
@@ -115,6 +112,7 @@ public class MatchesController : ControllerBase
         match.Status = "Confirmed";
         match.ConfirmedAt = DateTime.UtcNow;
         await _matches.UpsertAsync(match);
+        await _notifications.NotifyAsync(OtherParty(match, uid), MatchNotification.Confirmed, match);
 
         return NoContent();
     }
@@ -141,6 +139,7 @@ public class MatchesController : ControllerBase
         match.Status = "Completed";
         match.CompletedAt = DateTime.UtcNow;
         await _matches.UpsertAsync(match);
+        await _notifications.NotifyAsync(OtherParty(match, uid), MatchNotification.Completed, match);
 
         return NoContent();
     }
@@ -179,66 +178,6 @@ public class MatchesController : ControllerBase
         return CreatedAtAction(nameof(GetMatchDetail), new { matchId }, null);
     }
 
-    private async Task GenerateMatchesForFarmerAsync(string farmerId, int searchRadiusKm)
-    {
-        var myListings = await _listings.FindAsync(l => l.FarmerId == farmerId && l.Status == "Active");
-
-        foreach (var listing in myListings)
-        {
-            var candidateDemands = await _demands.FindAsync(d => d.CropType == listing.CropType && d.Status == "Open");
-
-            foreach (var demand in candidateDemands)
-            {
-                await TryUpsertMatchAsync(listing, demand, searchRadiusKm);
-            }
-        }
-    }
-
-    private async Task GenerateMatchesForBuyerAsync(string buyerId, int searchRadiusKm)
-    {
-        var myDemands = await _demands.FindAsync(d => d.BuyerId == buyerId && d.Status == "Open");
-
-        foreach (var demand in myDemands)
-        {
-            var candidateListings = await _listings.FindAsync(l => l.CropType == demand.CropType && l.Status == "Active");
-
-            foreach (var listing in candidateListings)
-            {
-                await TryUpsertMatchAsync(listing, demand, searchRadiusKm);
-            }
-        }
-    }
-
-    private async Task TryUpsertMatchAsync(Listing listing, DemandRequest demand, int searchRadiusKm)
-    {
-        var score = _matchingService.TryScoreMatch(listing, demand, searchRadiusKm);
-        if (score is null) return;
-
-        var deterministicId = $"{listing.Id}:{demand.Id}";
-        var existing = await _matches.GetByIdAsync(deterministicId);
-
-        var match = existing ?? new MatchDocument
-        {
-            Id = deterministicId,
-            ListingId = listing.Id,
-            DemandRequestId = demand.Id,
-            FarmerId = listing.FarmerId,
-            BuyerId = demand.BuyerId,
-            Status = "Suggested"
-        };
-
-        match.Score = score.Value;
-        match.CounterpartSnapshot = new CounterpartSnapshot
-        {
-            CropType = listing.CropType,
-            Quantity = listing.Quantity,
-            Unit = listing.Unit,
-            DistanceKm = MatchingService.CalculateDistanceKm(
-                listing.Location.Latitude, listing.Location.Longitude,
-                demand.Location.Latitude, demand.Location.Longitude),
-            RelevantDate = listing.HarvestDate
-        };
-
-        await _matches.UpsertAsync(match);
-    }
+    private static string OtherParty(MatchDocument match, string uid) =>
+        match.FarmerId == uid ? match.BuyerId : match.FarmerId;
 }

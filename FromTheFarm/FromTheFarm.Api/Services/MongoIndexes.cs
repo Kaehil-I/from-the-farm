@@ -10,6 +10,13 @@ public static class MongoIndexes
 {
     public static async Task EnsureAsync(IMongoDatabase database, CancellationToken cancellationToken = default)
     {
+        // Registering a device looks up which other accounts already hold the
+        // token, so it can be moved off them. Multikey over the embedded list.
+        var users = database.GetCollection<UserProfile>("Users");
+        await users.Indexes.CreateOneAsync(
+            new CreateIndexModel<UserProfile>(Builders<UserProfile>.IndexKeys.Ascending("deviceTokens.token")),
+            cancellationToken: cancellationToken);
+
         var listings = database.GetCollection<Listing>("Listings");
         await listings.Indexes.CreateManyAsync(
             new[]

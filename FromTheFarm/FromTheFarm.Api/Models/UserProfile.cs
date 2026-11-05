@@ -41,6 +41,12 @@ public class UserProfile : IDocument
     [JsonPropertyName("biometricLockEnabled")]
     public bool BiometricLockEnabled { get; set; } = false;
 
+    // FCM registration tokens for this user's devices. Never returned to
+    // clients: a token lets whoever holds it be sent notifications for this
+    // account, and the app has no use for reading them back.
+    [JsonIgnore]
+    public List<DeviceToken> DeviceTokens { get; set; } = new();
+
     [JsonPropertyName("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

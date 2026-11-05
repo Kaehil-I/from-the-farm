@@ -21,6 +21,15 @@ public static class RequestValidation
     // Reference: https://www.mongodb.com/docs/manual/reference/limits/
     public const int MaxPhotoBytes = 3 * 1024 * 1024;
 
+    // FCM registration tokens are roughly 160 characters today; the ceiling is
+    // generous so a format change does not start rejecting real devices.
+    public const int MaxDeviceTokenLength = 4096;
+
+    // Devices a single account can have registered at once. Registering past
+    // this evicts the least recently seen, so a user who reinstalls often does
+    // not accumulate dead tokens indefinitely.
+    public const int MaxDevicesPerUser = 10;
+
     public static readonly IReadOnlyList<string> AllowedRoles = new[] { "Farmer", "Buyer" };
     public static readonly IReadOnlyList<string> AllowedLanguages = new[] { "en", "zu", "af" };
 
@@ -86,6 +95,13 @@ public static class RequestValidation
 
     public static string? SearchRadiusKm(int value) =>
         value is < 1 or > 100 ? "searchRadiusKm must be between 1 and 100." : null;
+
+    public static string? DeviceToken(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? "token is required."
+            : value.Length > MaxDeviceTokenLength || value.Any(char.IsWhiteSpace)
+                ? "token is not a valid device token."
+                : null;
 
     public static string? Phone(string? value) =>
         string.IsNullOrWhiteSpace(value) || PhoneFormat.IsMatch(value.Trim())
