@@ -52,6 +52,10 @@ object MatchNotifications {
             .setContentIntent(tap)
             .setAutoCancel(true)
             .build()
-        NotificationManagerCompat.from(context).notify(matchId.hashCode(), notification)
+        try {
+            NotificationManagerCompat.from(context).notify(matchId.hashCode(), notification)
+        } catch (_: SecurityException) {
+            // The permission was revoked between the check above and posting.
+        }
     }
 }
