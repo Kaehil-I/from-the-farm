@@ -8,6 +8,7 @@ import androidx.credentials.GetCredentialRequest
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.messaging.FirebaseMessaging
@@ -17,6 +18,7 @@ import kotlinx.coroutines.tasks.await
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 interface FarmDataSource {
@@ -24,6 +26,8 @@ interface FarmDataSource {
     fun hasSession(): Boolean
     suspend fun signIn(activity: Context)
     suspend fun token(): String
+    // The signed-in account's id, or null. The background sync uses it to find that person's queued records.
+    fun currentUserId(): String? = null
     suspend fun logout()
     fun biometricEnabled(): Boolean = false
     fun setBiometricEnabled(enabled: Boolean) {}
@@ -51,6 +55,7 @@ class FarmRepository(private val context: Context) : FarmDataSource {
             .addConverterFactory(GsonConverterFactory.create()).build().create(FarmApi::class.java)
     }
     override fun hasSession() = FirebaseApp.getApps(context).isNotEmpty() && auth.currentUser != null
+    override fun currentUserId(): String? = if (hasSession()) auth.currentUser?.uid else null
 
     // Credential Manager obtains a Google credential; only the Firebase ID token goes to our API.
     // Reference: https://firebase.google.com/docs/auth/android/google-signin
@@ -67,7 +72,11 @@ class FarmRepository(private val context: Context) : FarmDataSource {
     }
     override suspend fun token(): String {
         val user = auth.currentUser ?: error("Please sign in again.")
-        return "Bearer " + (user.getIdToken(false).await().token ?: error("Please sign in again."))
+        // Refreshing an expired token needs the network. Report that as an I/O failure so callers treat
+        // it like any other offline request instead of as a broken session.
+        val result = try { user.getIdToken(false).await() }
+        catch (e: FirebaseNetworkException) { throw IOException("No connection to refresh the sign-in", e) }
+        return "Bearer " + (result.token ?: error("Please sign in again."))
     }
     // Registers this install's FCM token against the signed-in account. Called after
     // every sign-in and whenever Firebase rotates the token, so it must be repeatable.
