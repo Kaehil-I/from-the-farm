@@ -276,6 +276,70 @@ public class ListingsControllerTests
         Assert.Equal(1, repository.WriteCount);
     }
 
+    [Fact]
+    public async Task CreateListing_ReturnsTheOriginal_WhenTheSameClientGeneratedIdArrivesTwice()
+    {
+        var already = new Listing
+        {
+            Id = "listing-1",
+            FarmerId = Owner,
+            ClientGeneratedId = "device-abc",
+            CropType = "Tomatoes",
+            Quantity = 50,
+            Unit = "kg",
+            HarvestDate = new DateOnly(2026, 10, 1),
+            Location = new GeoLocation { Latitude = -29.85, Longitude = 31.02 }
+        };
+        var repository = new FakeRepository<Listing>(already);
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.CreateListing(Request(clientGeneratedId: "device-abc"));
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Equal("listing-1", Assert.IsType<Listing>(ok.Value).Id);
+        Assert.Equal(0, repository.WriteCount);
+        Assert.Single(repository.Documents);
+    }
+
+    [Fact]
+    public async Task CreateListing_TreatsAnotherFarmersClientGeneratedIdAsUnrelated()
+    {
+        // Ids are generated on the device, so two devices can pick the same one.
+        // They only identify a record within one farmer's own listings.
+        var theirs = new Listing
+        {
+            Id = "listing-1",
+            FarmerId = Stranger,
+            ClientGeneratedId = "device-abc",
+            CropType = "Tomatoes",
+            Quantity = 50,
+            Unit = "kg",
+            HarvestDate = new DateOnly(2026, 10, 1),
+            Location = new GeoLocation { Latitude = -29.85, Longitude = 31.02 }
+        };
+        var repository = new FakeRepository<Listing>(theirs);
+        var controller = ControllerFor(repository, Owner);
+
+        var result = await controller.CreateListing(Request(clientGeneratedId: "device-abc"));
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+        Assert.Equal(1, repository.WriteCount);
+        Assert.Equal(2, repository.Documents.Count);
+    }
+
+    [Fact]
+    public async Task CreateListing_StillCreatesEveryTime_WhenNoClientGeneratedIdIsSupplied()
+    {
+        // An online create carries no generated id, so two of them are two listings.
+        var repository = new FakeRepository<Listing>();
+        var controller = ControllerFor(repository, Owner);
+
+        await controller.CreateListing(Request());
+        await controller.CreateListing(Request());
+
+        Assert.Equal(2, repository.Documents.Count);
+    }
+
     private static UserProfile Profile(string uid, string? role) =>
         new() { Id = uid, UserId = uid, Role = role };
 
@@ -294,9 +358,10 @@ public class ListingsControllerTests
         string unit = "kg",
         double latitude = -29.85,
         double longitude = 31.02,
-        string? photoBase64 = null) =>
+        string? photoBase64 = null,
+        string? clientGeneratedId = null) =>
         new(
-            null,
+            clientGeneratedId,
             cropType,
             quantity,
             unit,

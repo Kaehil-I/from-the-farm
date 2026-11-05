@@ -15,9 +15,10 @@ data class Listing(val id: String, val cropType: String, val quantity: Double, v
 data class Demand(val id: String, val cropType: String, val quantityNeeded: Double, val unit: String,
     val deadline: String, val location: Location, val status: String)
 data class ListingWrite(val cropType: String, val quantity: Double, val unit: String,
-    val harvestDate: String, val location: Location, val photoBase64: String? = null)
+    val harvestDate: String, val location: Location, val photoBase64: String? = null,
+    val clientGeneratedId: String? = null)
 data class DemandWrite(val cropType: String, val quantityNeeded: Double, val unit: String,
-    val deadline: String, val location: Location)
+    val deadline: String, val location: Location, val clientGeneratedId: String? = null)
 data class Counterpart(val cropType: String, val quantity: Double, val unit: String,
     val distanceKm: Double, val relevantDate: String)
 data class Match(val matchId: String, val score: Double, val counterpart: Counterpart, val status: String)

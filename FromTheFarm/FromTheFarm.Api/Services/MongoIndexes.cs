@@ -1,4 +1,5 @@
 using FromTheFarm.Api.Models;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace FromTheFarm.Api.Services;
@@ -30,10 +31,27 @@ public static class MongoIndexes
                     .Ascending(l => l.CropType)),
 
                 // Offline reconciliation looks a record up by the id the device
-                // generated. Sparse because only offline-created records have one.
+                // generated, scoped to its owner. Unique, so a retried create can
+                // never leave two copies behind: the index enforces at the database
+                // what the lookup in CreateListing checks for, which a lookup alone
+                // cannot guarantee when two retries race.
+                //
+                // Partial rather than sparse. A compound sparse index still indexes a
+                // document when any one key is present, and farmerId always is, so
+                // every listing created online would be indexed on a null id and the
+                // second one would collide. Filtering on the field actually being a
+                // string leaves those documents out of the index entirely.
+                // Reference: https://www.mongodb.com/docs/manual/core/index-partial/
                 new CreateIndexModel<Listing>(
-                    Builders<Listing>.IndexKeys.Ascending(l => l.ClientGeneratedId),
-                    new CreateIndexOptions { Sparse = true })
+                    Builders<Listing>.IndexKeys
+                        .Ascending(l => l.FarmerId)
+                        .Ascending(l => l.ClientGeneratedId),
+                    new CreateIndexOptions<Listing>
+                    {
+                        Unique = true,
+                        PartialFilterExpression =
+                            Builders<Listing>.Filter.Type(l => l.ClientGeneratedId, BsonType.String)
+                    })
             },
             cancellationToken);
 
@@ -45,9 +63,17 @@ public static class MongoIndexes
                 new CreateIndexModel<DemandRequest>(Builders<DemandRequest>.IndexKeys
                     .Ascending(d => d.Status)
                     .Ascending(d => d.CropType)),
+                // Same reconciliation guarantee as Listings, keyed on the buyer.
                 new CreateIndexModel<DemandRequest>(
-                    Builders<DemandRequest>.IndexKeys.Ascending(d => d.ClientGeneratedId),
-                    new CreateIndexOptions { Sparse = true })
+                    Builders<DemandRequest>.IndexKeys
+                        .Ascending(d => d.BuyerId)
+                        .Ascending(d => d.ClientGeneratedId),
+                    new CreateIndexOptions<DemandRequest>
+                    {
+                        Unique = true,
+                        PartialFilterExpression =
+                            Builders<DemandRequest>.Filter.Type(d => d.ClientGeneratedId, BsonType.String)
+                    })
             },
             cancellationToken);
 

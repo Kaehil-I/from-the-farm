@@ -75,6 +75,20 @@ public class DemandsController : ControllerBase
             return BadRequest(invalid);
         }
 
+        // Same retry protection as listings: an id the client generated identifies
+        // the record across attempts, so a repeated create returns the original
+        // rather than adding another demand request.
+        if (!string.IsNullOrWhiteSpace(request.ClientGeneratedId))
+        {
+            var alreadyCreated = await _demands.FindAsync(
+                d => d.BuyerId == uid && d.ClientGeneratedId == request.ClientGeneratedId);
+
+            if (alreadyCreated.Count > 0)
+            {
+                return Ok(alreadyCreated[0]);
+            }
+        }
+
         var demand = new DemandRequest
         {
             BuyerId = uid,
