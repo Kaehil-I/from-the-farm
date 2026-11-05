@@ -65,6 +65,12 @@ public class ListingsController : ControllerBase
                 .ToList();
         }
 
+        // Browsing shows other farms; only the owner's own view keeps exact data.
+        if (!mine)
+        {
+            results = results.Select(BrowsePrivacy.Redact).ToList();
+        }
+
         return Ok(results);
     }
 
@@ -178,6 +184,12 @@ public class ListingsController : ControllerBase
         }
 
         var updated = await _listings.UpsertAsync(existing);
+
+        // An edit can make the listing match different demands (new crop, new
+        // location); suggestions it no longer fits are dropped when feeds load.
+        var radius = (await _users.GetByIdAsync(uid))?.SearchRadiusKm ?? 10;
+        await _matching.OnListingCreatedAsync(updated, radius);
+
         return Ok(updated);
     }
 
