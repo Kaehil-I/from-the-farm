@@ -15,6 +15,12 @@ Part 1's UI-only prototype (mock data, no networking) has been replaced end to e
 
 This repository is the submitted deliverable, with the team's full commit history. Day-to-day development happened on [Kaehil-I/from-the-farm](https://github.com/Kaehil-I/from-the-farm), including this repository's own commit history — pull request reviews, individual GitHub Actions run logs and issue discussion live there rather than transferring with a branch mirror. The live deployment on Render is also connected to that repository.
 
+## Documentation
+
+- [`Documentation/Release-Notes.md`](Documentation/Release-Notes.md) — what changed since Part 2, by team member.
+- [`Documentation/Test-Matrix.md`](Documentation/Test-Matrix.md) — manual test matrix, regression checklist and translation checklist, with what has and has not been run.
+- [`Documentation/Offline-Sync-Demo.md`](Documentation/Offline-Sync-Demo.md) — steps to demonstrate and verify offline creation and sync.
+
 ## How to open
 
 ### Backend (`FromTheFarm.Api`)
@@ -116,6 +122,8 @@ android/app/src/main/java/com/fromthefarm/app/
 │   └── SampleData.kt                 — retained for the Part 1 preview screens only; live screens never use it
 ├── ui/
 │   ├── FarmViewModel.kt              — single state holder: session, profile, listings/demands/matches, error mapping
+│   ├── AppLanguage.kt                — applies the profile's language as the app language
+│   ├── UiText.kt                     — translatable message keys the ViewModel reports and screens resolve
 │   ├── navigation/FarmNavHost.kt      — authenticated shell: bottom nav, editors, match detail, biometric lock screen, buyer recommendations, harvest calendar
 │   └── screens/
 │       ├── LiveForms.kt              — RecordEditor (listing/demand form), NearbyFilter (buyer search), ProfileEditor (onboarding/settings)
@@ -147,10 +155,21 @@ The storage, queue and upload rules are covered by 13 unit tests: the upload log
 
 Room is the Android-recommended way to keep structured data in a local SQLite database (Android Developers, n.d.-c).
 
+## Localisation
+
+The app is available in **English, isiZulu and Afrikaans**.
+
+- **One setting.** The profile's *Preferred language* (chosen at onboarding and changeable in Settings, then **Save preferences**) is the single language setting. The app follows it, and the API writes push notifications in the same language, so the screens and the notifications agree. On Android 13 and above the language can also be changed from Android's own per-app language settings.
+- **Where the text lives.** Every visible string is in `android/app/src/main/res/values/strings.xml` (English), `values-zu/strings.xml` (isiZulu) and `values-af/strings.xml` (Afrikaans): 191 strings in each, with matching keys. The notification channel name and description are in `notification_strings.xml` in each language folder. To add a language, add a `values-xx` folder with the same keys and list it in `res/xml/locales_config.xml` and in `AppLanguage.supported`.
+- **How it works.** `AppLanguage` applies the saved profile language with AppCompat's per-app locale support (`MainActivity` is an `AppCompatActivity`, and the theme has an AppCompat parent). The API still sends status values such as *Suggested* and *Confirmed* in English; the app maps them to translated labels. The ViewModel reports messages as `UiText` keys, and the screen resolves them when drawn, so a message always appears in the active language. Form validation returns string resources. Developer-facing setup errors, such as a missing Firebase configuration, are not translated.
+- **Status of the translations.** The isiZulu and Afrikaans text is a first draft awaiting a native-speaker review. The checklist and the terms used are in `Documentation/Test-Matrix.md`.
+- **Not translated.** The Part 1 preview screens kept as design references are not wired into the app and are still English.
+
 ## Testing status
 
 - **Backend**: 170 xUnit test methods, run in CI on every push. Every controller except `HealthController` is tested against an in-memory `IMongoRepository` double: ownership, role and validation rules for listings, demands and profiles; the whole match lifecycle (Suggested → Confirmed → Completed with no stage skipped, contact details hidden until confirmed, one rating per user, outsiders get 404); feed generation from both the farmer's and the buyer's side; and the sign-in profile create-or-fetch. Alongside them sit matching and distance calculations, crop/radius/quantity/freshness rules and BSON date serialization. Not covered: `HealthController`, the concrete `MongoRepository` and `MongoIndexes` (they need a live cluster), and `ClaimsPrincipalExtensions`.
-- **Android**: 36 unit tests cover the Retrofit contract, Firebase Bearer headers, validation, crop normalization, buyer recommendations, range filtering, recommendation deduplication, catalogue preservation after nearby searches, session recovery, CRUD operations, match lifecycle and settings. Compose UI, biometric, image-picker and device-location flows require emulator or physical-device tests.
+- **Android**: 65 unit tests (all passing) cover the Retrofit contract, Firebase Bearer headers, validation, crop normalization, buyer recommendations, range filtering, recommendation deduplication, catalogue preservation after nearby searches, session recovery, CRUD operations, match lifecycle, settings, the offline queue and upload logic, and notification rules. Compose UI, biometric, image-picker and device-location flows require emulator or physical-device tests.
+- **Manual**: `Documentation/Test-Matrix.md` records the manual localisation tests and regression checklist. Only the sign-in screen and its error message have been checked in all three languages on an emulator so far; the signed-in screens still need a device run.
 
 Run the complete local checks with:
 
@@ -169,9 +188,9 @@ cd android
 
 ## Known gaps
 
-- Push notifications (Firebase Cloud Messaging) are not implemented on either side.
+- Push notifications (Firebase Cloud Messaging) are implemented on both sides: the API registers device tokens and sends a push for new matches and match status changes, and the app registers, asks for the notification permission and opens the right match when a notification is tapped. Delivery on a physical device is not recorded in these docs yet.
 - Offline creation and sync covers new listings and demand requests only. Editing and deleting a record needs a connection (see Offline sync).
-- The language selector (English / isiZulu / Afrikaans) saves to the profile, but the app's text is not translated — every screen is English regardless of the choice.
+- The isiZulu and Afrikaans translations have not had a native-speaker review (see Localisation), and the signed-in screens have not yet been checked in those languages on a device.
 - Editing a listing can replace its photo but not remove it, and photos are stored inline on the listing document as base64, which is a stopgap for real object storage.
 - The rating endpoint is `POST /matches/{id}/rating`; the design document specifies `/ratings` plus a `GET` for the caller's own rating, so the app tracks "already rated" locally.
 - The `farmName` / `buyerName` public labels from the design document are not implemented; a match card shows crop, quantity and distance only until the match is confirmed.
@@ -184,7 +203,7 @@ cd android
 - Zario Di Paolo — Android frontend (auth wiring, live screens, navigation, forms, biometric unlock), Unit Testing
 - Kaehil Indurjeeth — backend deployment, Firebase token verification, matching/feed logic, CI/CD, Unit Testing
 - Gregory Luyckfasseel — listing/demand CRUD ownership, Mongo validation, photo support, profile/settings persistence
-- Kyra Naidoo — Research Report, unit test drafting, README draft
+- Kyra Naidoo — Research Report, unit test drafting, README draft; Part 3: localisation (English, isiZulu, Afrikaans), manual test matrix and translation checklist, README and release notes
 
 ## References
 
