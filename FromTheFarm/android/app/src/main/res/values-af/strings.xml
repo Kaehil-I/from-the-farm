@@ -109,4 +109,74 @@
     <string name="calendar_hint">Kies \'n datum om te sien watter produkte daardie dag beskikbaar is.</string>
     <string name="select_date">Kies \'n datum op die kalender.</string>
     <string name="no_produce_date">Geen produkte is vir hierdie datum geskeduleer nie.</string>
+
+    <!-- Forms: listings, demands, profile -->
+    <string name="title_create_demand">Skep aanvraag</string>
+    <string name="title_edit_demand">Wysig aanvraag</string>
+    <string name="title_create_listing">Skep lys</string>
+    <string name="title_edit_listing">Wysig lys</string>
+    <string name="field_crop_type">Gewastipe</string>
+    <string name="field_crop_blank">Gewastipe (los leeg vir almal)</string>
+    <string name="field_quantity">Hoeveelheid</string>
+    <string name="field_unit">Eenheid (bv. kg)</string>
+    <string name="field_deadline">Sperdatum (JJJJ-MM-DD)</string>
+    <string name="field_harvest_date">Oesdatum (JJJJ-MM-DD)</string>
+    <string name="choose_date">Kies datum</string>
+    <string name="use_date">Gebruik datum</string>
+    <string name="saving">Stoor tans…</string>
+    <string name="save">Stoor</string>
+    <string name="search_within">Soek binne %1$d km. Verander die radius in Instellings.</string>
+    <string name="nearby_invalid_coords">Voer geldige breedte- en lengtegraad vir die soekligging in.</string>
+
+    <!-- Photos -->
+    <string name="photo_open_error">Kon nie hierdie foto oopmaak nie. Kies \'n kleiner JPEG- of PNG-beeld.</string>
+    <string name="photo_preparing">Berei foto voor…</string>
+    <string name="choose_photo">Kies lysfoto</string>
+    <string name="discard_photo">Gooi gekose foto weg</string>
+    <string name="photo_reselect">Kies jou foto weer voordat jy stoor.</string>
+    <string name="listing_photo">Lysfoto</string>
+    <string name="photo_loading">Foto laai of is nie beskikbaar nie</string>
+
+    <!-- Location -->
+    <string name="location_title">Ligging</string>
+    <string name="location_hint">Gebruik jou toestel se ligging vir akkurate passings in die omgewing.</string>
+    <string name="use_my_location">Gebruik my huidige ligging</string>
+    <string name="finding_location">Soek ligging…</string>
+    <string name="selected_location">Gekose ligging: %1$s, %2$s</string>
+    <string name="location_selected">Huidige ligging gekies.</string>
+    <string name="location_unknown_enable">Kon nie jou ligging bepaal nie. Skakel Ligging aan in Android-instellings of voer dit handmatig in.</string>
+    <string name="location_unknown_check">Kon nie jou ligging bepaal nie. Gaan Ligging in Android-instellings na of voer dit handmatig in.</string>
+    <string name="location_permission_denied">Liggingtoestemming is nie toegestaan nie. Jy kan die koördinate handmatig invoer.</string>
+    <string name="hide_manual">Versteek handmatige koördinate</string>
+    <string name="enter_manual">Voer koördinate handmatig in</string>
+    <string name="latitude">Breedtegraad</string>
+    <string name="longitude">Lengtegraad</string>
+
+    <!-- Profile -->
+    <string name="role_farmer">Boer</string>
+    <string name="role_buyer">Koper</string>
+    <string name="profile_setup">Stel jou profiel op</string>
+    <string name="choose_start">Kies hoe jy wil begin</string>
+    <string name="active_mode">Aktiewe modus</string>
+    <string name="mode_switch_note">Wissel van modus sonder om uit te teken. Jou lyste en aanvrae bly aan hierdie rekening gekoppel.</string>
+    <string name="preferred_language">Voorkeurtaal</string>
+    <string name="search_radius">Soekradius: %1$d km</string>
+    <string name="field_phone">Foonnommer (opsioneel)</string>
+    <string name="phone_shared_note">Jou foonnommer word met bevestigde passings gedeel.</string>
+    <string name="notification_preference">Stoor kennisgewingvoorkeur</string>
+    <string name="phone_invalid">Voer \'n geldige foonnommer in of los dit leeg.</string>
+    <string name="continue_label">Gaan voort</string>
+    <string name="switch_to_role">Wissel na %1$s</string>
+    <string name="save_preferences">Stoor voorkeure</string>
+
+    <!-- Biometric prompts and errors -->
+    <string name="biometric_prompt_title">Ontsluit From The Farm</string>
+    <string name="biometric_prompt_subtitle">Verifieer jou identiteit op hierdie toestel</string>
+    <string name="biometric_cancelled">Biometriese verifikasie is gekanselleer.</string>
+    <string name="biometric_unavailable_try_google">Biometriese verifikasie is nie beskikbaar nie. Probeer Google-aanmelding of gaan jou toestelinstellings na.</string>
+    <string name="biometric_not_recognised">Vingerafdruk of gesig nie herken nie. Probeer weer.</string>
+    <string name="biometric_none_enrolled">Voeg eers \'n vingerafdruk of ondersteunde gesigsontsluiting in Android-instellings by.</string>
+    <string name="biometric_no_hardware">Hierdie toestel het nie ondersteunde biometriese hardeware nie. Jy kan Google-aanmelding gebruik.</string>
+    <string name="biometric_hw_unavailable">Biometriese hardeware is tydelik nie beskikbaar nie. Probeer weer of gebruik Google-aanmelding.</string>
+    <string name="biometric_unavailable_device">Biometriese verifikasie is nie op hierdie toestel beskikbaar nie. Jy kan Google-aanmelding gebruik.</string>
 </resources>

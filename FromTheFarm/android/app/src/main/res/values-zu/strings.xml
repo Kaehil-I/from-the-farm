@@ -109,4 +109,74 @@
     <string name="calendar_hint">Khetha usuku ukuze ubone isivuno esitholakalayo ngalolo suku.</string>
     <string name="select_date">Khetha usuku ekhalendeni.</string>
     <string name="no_produce_date">Alukho isivuno esihlelelwe lolu suku.</string>
+
+    <!-- Forms: listings, demands, profile -->
+    <string name="title_create_demand">Dala isicelo sesidingo</string>
+    <string name="title_edit_demand">Hlela isicelo sesidingo</string>
+    <string name="title_create_listing">Dala uhlu</string>
+    <string name="title_edit_listing">Hlela uhlu</string>
+    <string name="field_crop_type">Uhlobo lwesivuno</string>
+    <string name="field_crop_blank">Uhlobo lwesivuno (shiya ngenalutho kwabo bonke)</string>
+    <string name="field_quantity">Inani</string>
+    <string name="field_unit">Iyunithi (isb. kg)</string>
+    <string name="field_deadline">Usuku olugcina (YYYY-MM-DD)</string>
+    <string name="field_harvest_date">Usuku lokuvuna (YYYY-MM-DD)</string>
+    <string name="choose_date">Khetha usuku</string>
+    <string name="use_date">Sebenzisa usuku</string>
+    <string name="saving">Iyagcina…</string>
+    <string name="save">Gcina</string>
+    <string name="search_within">Sesha phakathi kwama-%1$d km. Shintsha ibanga Ezilungiselelweni.</string>
+    <string name="nearby_invalid_coords">Faka i-latitude ne-longitude esebenzayo yendawo yokusesha.</string>
+
+    <!-- Photos -->
+    <string name="photo_open_error">Ayikwazanga ukuvula leli foto. Khetha isithombe esincane se-JPEG noma se-PNG.</string>
+    <string name="photo_preparing">Ilungisa ifoto…</string>
+    <string name="choose_photo">Khetha ifoto yohlu</string>
+    <string name="discard_photo">Lahla ifoto ekhethiwe</string>
+    <string name="photo_reselect">Khetha ifoto yakho futhi ngaphambi kokugcina.</string>
+    <string name="listing_photo">Ifoto yohlu</string>
+    <string name="photo_loading">Ifoto iyalayisha noma ayitholakali</string>
+
+    <!-- Location -->
+    <string name="location_title">Indawo</string>
+    <string name="location_hint">Sebenzisa indawo yedivayisi yakho ukuze kufaniswe kahle okuseduze.</string>
+    <string name="use_my_location">Sebenzisa indawo yami yamanje</string>
+    <string name="finding_location">Iyatholakala indawo…</string>
+    <string name="selected_location">Indawo ekhethiwe: %1$s, %2$s</string>
+    <string name="location_selected">Indawo yamanje ikhethiwe.</string>
+    <string name="location_unknown_enable">Ayikwazanga ukuthola indawo yakho. Vula Indawo kuzilungiselelo ze-Android noma uyifake ngesandla.</string>
+    <string name="location_unknown_check">Ayikwazanga ukuthola indawo yakho. Hlola Indawo kuzilungiselelo ze-Android noma uyifake ngesandla.</string>
+    <string name="location_permission_denied">Imvume yendawo ayinikeziwe. Ungafaka izixhumanisi ngesandla.</string>
+    <string name="hide_manual">Fihla izixhumanisi zesandla</string>
+    <string name="enter_manual">Faka izixhumanisi ngesandla</string>
+    <string name="latitude">I-latitude</string>
+    <string name="longitude">I-longitude</string>
+
+    <!-- Profile -->
+    <string name="role_farmer">Umlimi</string>
+    <string name="role_buyer">Umthengi</string>
+    <string name="profile_setup">Misa iphrofayela yakho</string>
+    <string name="choose_start">Khetha ukuthi ufuna ukuqala kanjani</string>
+    <string name="active_mode">Imodi esebenzayo</string>
+    <string name="mode_switch_note">Shintsha izimodi ngaphandle kokuphuma. Izinhlu zakho nezicelo zezidingo ziyaqhubeka zixhumene nale akhawunti.</string>
+    <string name="preferred_language">Ulimi oluthandwayo</string>
+    <string name="search_radius">Ibanga lokusesha: %1$d km</string>
+    <string name="field_phone">Inombolo yocingo (ayiphoqelekile)</string>
+    <string name="phone_shared_note">Inombolo yakho yocingo yabiwa nabafaniswe nabo abaqinisekisiwe.</string>
+    <string name="notification_preference">Gcina okuthandayo kwezaziso</string>
+    <string name="phone_invalid">Faka inombolo yocingo esebenzayo noma uyishiye ingenalutho.</string>
+    <string name="continue_label">Qhubeka</string>
+    <string name="switch_to_role">Yenza i-%1$s</string>
+    <string name="save_preferences">Gcina okuthandayo</string>
+
+    <!-- Biometric prompts and errors -->
+    <string name="biometric_prompt_title">Vula i-From The Farm</string>
+    <string name="biometric_prompt_subtitle">Qinisekisa ubuwena kule divayisi</string>
+    <string name="biometric_cancelled">Ukuqinisekiswa nge-biometrics kukhanseliwe.</string>
+    <string name="biometric_unavailable_try_google">Ukuqinisekiswa nge-biometrics akutholakali. Zama ukungena nge-Google noma ubheke izilungiselelo zedivayisi yakho.</string>
+    <string name="biometric_not_recognised">Isigxivizo somunwe noma ubuso akubonwanga. Zama futhi.</string>
+    <string name="biometric_none_enrolled">Qala ngokungeza isigxivizo somunwe noma ukuvula ngobuso okusekelwayo kuzilungiselelo ze-Android.</string>
+    <string name="biometric_no_hardware">Le divayisi ayinawo amahadiwe e-biometrics asekelwayo. Ungasebenzisa ukungena nge-Google.</string>
+    <string name="biometric_hw_unavailable">Ihadiwe ye-biometrics ayitholakali okwesikhashana. Zama futhi noma usebenzise ukungena nge-Google.</string>
+    <string name="biometric_unavailable_device">Ukuqinisekiswa nge-biometrics akutholakali kule divayisi. Ungasebenzisa ukungena nge-Google.</string>
 </resources>

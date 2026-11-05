@@ -109,4 +109,74 @@
     <string name="calendar_hint">Select a date to see produce available on that day.</string>
     <string name="select_date">Select a date on the calendar.</string>
     <string name="no_produce_date">No produce is scheduled for this date.</string>
+
+    <!-- Forms: listings, demands, profile -->
+    <string name="title_create_demand">Create demand request</string>
+    <string name="title_edit_demand">Edit demand request</string>
+    <string name="title_create_listing">Create listing</string>
+    <string name="title_edit_listing">Edit listing</string>
+    <string name="field_crop_type">Crop type</string>
+    <string name="field_crop_blank">Crop type (blank for all)</string>
+    <string name="field_quantity">Quantity</string>
+    <string name="field_unit">Unit (e.g. kg)</string>
+    <string name="field_deadline">Deadline (YYYY-MM-DD)</string>
+    <string name="field_harvest_date">Harvest date (YYYY-MM-DD)</string>
+    <string name="choose_date">Choose date</string>
+    <string name="use_date">Use date</string>
+    <string name="saving">Saving…</string>
+    <string name="save">Save</string>
+    <string name="search_within">Search within %1$d km. Change the radius in Settings.</string>
+    <string name="nearby_invalid_coords">Enter valid latitude and longitude for the search location.</string>
+
+    <!-- Photos -->
+    <string name="photo_open_error">Could not open this photo. Choose a smaller JPEG or PNG image.</string>
+    <string name="photo_preparing">Preparing photo…</string>
+    <string name="choose_photo">Choose listing photo</string>
+    <string name="discard_photo">Discard selected photo</string>
+    <string name="photo_reselect">Select your photo again before saving.</string>
+    <string name="listing_photo">Listing photo</string>
+    <string name="photo_loading">Photo loading or unavailable</string>
+
+    <!-- Location -->
+    <string name="location_title">Location</string>
+    <string name="location_hint">Use your device location for accurate nearby matching.</string>
+    <string name="use_my_location">Use my current location</string>
+    <string name="finding_location">Finding location…</string>
+    <string name="selected_location">Selected location: %1$s, %2$s</string>
+    <string name="location_selected">Current location selected.</string>
+    <string name="location_unknown_enable">Could not determine your location. Turn on Location in Android Settings or enter it manually.</string>
+    <string name="location_unknown_check">Could not determine your location. Check Location in Android Settings or enter it manually.</string>
+    <string name="location_permission_denied">Location permission was not granted. You can enter the coordinates manually.</string>
+    <string name="hide_manual">Hide manual coordinates</string>
+    <string name="enter_manual">Enter coordinates manually</string>
+    <string name="latitude">Latitude</string>
+    <string name="longitude">Longitude</string>
+
+    <!-- Profile -->
+    <string name="role_farmer">Farmer</string>
+    <string name="role_buyer">Buyer</string>
+    <string name="profile_setup">Set up your profile</string>
+    <string name="choose_start">Choose how you want to start</string>
+    <string name="active_mode">Active mode</string>
+    <string name="mode_switch_note">Switch modes without signing out. Your listings and demand requests stay connected to this account.</string>
+    <string name="preferred_language">Preferred language</string>
+    <string name="search_radius">Search radius: %1$d km</string>
+    <string name="field_phone">Phone number (optional)</string>
+    <string name="phone_shared_note">Your phone number is shared with confirmed matches.</string>
+    <string name="notification_preference">Save notification preference</string>
+    <string name="phone_invalid">Enter a valid phone number or leave it blank.</string>
+    <string name="continue_label">Continue</string>
+    <string name="switch_to_role">Switch to %1$s</string>
+    <string name="save_preferences">Save preferences</string>
+
+    <!-- Biometric prompts and errors -->
+    <string name="biometric_prompt_title">Unlock From The Farm</string>
+    <string name="biometric_prompt_subtitle">Verify your identity on this device</string>
+    <string name="biometric_cancelled">Biometric authentication cancelled.</string>
+    <string name="biometric_unavailable_try_google">Biometric authentication unavailable. Try Google sign-in or check your device settings.</string>
+    <string name="biometric_not_recognised">Fingerprint or face not recognised. Try again.</string>
+    <string name="biometric_none_enrolled">Add a fingerprint or supported face unlock in Android Settings first.</string>
+    <string name="biometric_no_hardware">This device does not have supported biometric hardware. You can use Google sign-in.</string>
+    <string name="biometric_hw_unavailable">Biometric hardware is temporarily unavailable. Try again or use Google sign-in.</string>
+    <string name="biometric_unavailable_device">Biometric authentication is unavailable on this device. You can use Google sign-in.</string>
 </resources>

@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import com.fromthefarm.app.R
 
 private fun Context.hostActivity(): FragmentActivity? = when (this) {
     is FragmentActivity -> this
@@ -34,10 +35,10 @@ fun BiometricAction(label: String, enabled: Boolean, success: () -> Unit, error:
                 }
                 override fun onAuthenticationError(code: Int, message: CharSequence) {
                     prompting = false
-                    onError(if (code in listOf(BiometricPrompt.ERROR_USER_CANCELED, BiometricPrompt.ERROR_CANCELED, BiometricPrompt.ERROR_NEGATIVE_BUTTON))
-                        "Biometric authentication cancelled." else "Biometric authentication unavailable. Try Google sign-in or check your device settings.")
+                    onError(host.getString(if (code in listOf(BiometricPrompt.ERROR_USER_CANCELED, BiometricPrompt.ERROR_CANCELED, BiometricPrompt.ERROR_NEGATIVE_BUTTON))
+                        R.string.biometric_cancelled else R.string.biometric_unavailable_try_google))
                 }
-                override fun onAuthenticationFailed() { onError("Fingerprint or face not recognised. Try again.") }
+                override fun onAuthenticationFailed() { onError(host.getString(R.string.biometric_not_recognised)) }
             })
         }
     }
@@ -48,22 +49,19 @@ fun BiometricAction(label: String, enabled: Boolean, success: () -> Unit, error:
         val authenticators = BiometricManager.Authenticators.BIOMETRIC_WEAK
         val available = BiometricManager.from(context).canAuthenticate(authenticators)
         if (available != BiometricManager.BIOMETRIC_SUCCESS || prompt == null) {
-            onError(when (available) {
-                BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED ->
-                    "Add a fingerprint or supported face unlock in Android Settings first."
-                BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
-                    "This device does not have supported biometric hardware. You can use Google sign-in."
-                BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ->
-                    "Biometric hardware is temporarily unavailable. Try again or use Google sign-in."
-                else -> "Biometric authentication is unavailable on this device. You can use Google sign-in."
-            })
+            onError(context.getString(when (available) {
+                BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> R.string.biometric_none_enrolled
+                BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> R.string.biometric_no_hardware
+                BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> R.string.biometric_hw_unavailable
+                else -> R.string.biometric_unavailable_device
+            }))
         } else {
             prompting = true
             prompt.authenticate(BiometricPrompt.PromptInfo.Builder()
-                .setTitle("Unlock From The Farm")
-                .setSubtitle("Verify your identity on this device")
+                .setTitle(context.getString(R.string.biometric_prompt_title))
+                .setSubtitle(context.getString(R.string.biometric_prompt_subtitle))
                 .setAllowedAuthenticators(authenticators)
-                .setNegativeButtonText("Cancel").build())
+                .setNegativeButtonText(context.getString(R.string.cancel)).build())
         }
     }) { Text(label) }
 }

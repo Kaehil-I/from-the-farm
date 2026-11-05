@@ -13,7 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.fromthefarm.app.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -79,7 +81,7 @@ fun ListingPhoto(source: String?) {
         }
     }
     val photo = bitmap
-    if (photo != null) Image(photo.asImageBitmap(), contentDescription = "Listing photo",
+    if (photo != null) Image(photo.asImageBitmap(), contentDescription = stringResource(R.string.listing_photo),
         modifier = Modifier.fillMaxWidth().height(160.dp), contentScale = ContentScale.Crop)
-    else Text("Photo loading or unavailable")
+    else Text(stringResource(R.string.photo_loading))
 }
