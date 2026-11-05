@@ -20,6 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fromthefarm.app.R
 import com.fromthefarm.app.data.*
 import com.fromthefarm.app.ui.AppLanguage
+import com.fromthefarm.app.ui.asString
 import com.fromthefarm.app.ui.FarmViewModel
 import com.fromthefarm.app.ui.screens.RecordEditor
 import com.fromthefarm.app.ui.screens.ProfileEditor
@@ -74,7 +75,7 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
         Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(stringResource(R.string.locked_title), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(R.string.locked_body))
-            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            state.error?.let { Text(it.asString(), color = MaterialTheme.colorScheme.error) }
             BiometricAction(stringResource(R.string.unlock_biometrics), !state.busy, vm::unlockWithBiometrics, vm::biometricError)
             TextButton(enabled = !state.busy, onClick = { vm.signIn(context) }) { Text(stringResource(R.string.use_google_instead)) }
             TextButton(enabled = !state.busy, onClick = vm::logout) { Text(stringResource(R.string.sign_out)) }
@@ -129,8 +130,8 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
             Spacer(Modifier.height(12.dp))
             Text(stringResource(R.string.app_heading), style = MaterialTheme.typography.headlineSmall)
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            state.message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+            state.error?.let { Text(it.asString(), color = MaterialTheme.colorScheme.error) }
+            state.message?.let { Text(it.asString(), color = MaterialTheme.colorScheme.primary) }
             if (profile == null && state.firebaseSignedIn) {
                 Text(stringResource(R.string.google_signin_succeeded), style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.profile_load_failed))

@@ -179,4 +179,51 @@
     <string name="biometric_no_hardware">Hierdie toestel het nie ondersteunde biometriese hardeware nie. Jy kan Google-aanmelding gebruik.</string>
     <string name="biometric_hw_unavailable">Biometriese hardeware is tydelik nie beskikbaar nie. Probeer weer of gebruik Google-aanmelding.</string>
     <string name="biometric_unavailable_device">Biometriese verifikasie is nie op hierdie toestel beskikbaar nie. Jy kan Google-aanmelding gebruik.</string>
+
+    <!-- Messages shown after actions and errors -->
+    <string name="signin_cancelled">Aanmelding is gekanselleer. Jy kan weer probeer wanneer jy gereed is.</string>
+    <string name="err_session_expired">Jou sessie het verval of is geweier. Meld asseblief weer aan.</string>
+    <string name="err_forbidden">Jy het nie toestemming vir hierdie handeling nie.</string>
+    <string name="err_not_found">Hierdie rekord is nie meer beskikbaar nie. Verfris en probeer weer.</string>
+    <string name="err_conflict">Hierdie handeling is reeds aangeteken. Verfris om die status na te gaan.</string>
+    <string name="err_service_unavailable">Die plaasdiens is nie beskikbaar nie. Probeer asseblief weer.</string>
+    <string name="err_rejected">Die diens het die versoek geweier (%1$d). Gaan jou invoer na.</string>
+    <string name="err_network">Kan nie die plaasdiens bereik nie. Render word dalk wakker; wag \'n oomblik, gaan jou verbinding na en probeer weer.</string>
+    <string name="err_config_incomplete">Opstelling is onvolledig.</string>
+    <string name="err_generic">Die handeling kon nie voltooi word nie. Probeer asseblief weer.</string>
+    <string name="err_sign_in_first">Meld eers met Google aan.</string>
+    <string name="err_sign_in_again">Meld asseblief weer aan.</string>
+    <string name="err_no_credential">Google het nie \'n ondersteunde bewys teruggegee nie.</string>
+    <string name="err_refresh_before_confirm">Verfris hierdie passing voordat jy dit bevestig.</string>
+    <string name="err_only_confirmed_complete">Slegs bevestigde ruile kan voltooi word.</string>
+    <string name="err_only_completed_rate">Slegs voltooide passings kan beoordeel word.</string>
+    <string name="err_already_rated">Jy het hierdie passing reeds beoordeel.</string>
+    <string name="saved_offline">Op hierdie foon gestoor. Dit sal outomaties oplaai wanneer jy weer aanlyn is.</string>
+    <string name="sign_in_again_upload">Meld weer aan om die rekords wat op hierdie foon gestoor is, op te laai.</string>
+    <string name="uploaded_one_record">1 rekord wat aflyn gestoor is, is opgelaai.</string>
+    <string name="uploaded_records">%1$d rekords wat aflyn gestoor is, is opgelaai.</string>
+    <string name="biometric_enabled_msg">Biometriese ontsluiting is op hierdie toestel geaktiveer.</string>
+    <string name="biometric_disabled_msg">Biometriese ontsluiting is op hierdie toestel gedeaktiveer.</string>
+    <string name="device_unlocked">Toestel ontsluit.</string>
+    <string name="preferences_saved">Voorkeure gestoor.</string>
+    <string name="refresh_failed">Kon nie %1$s verfris nie. Voorheen gelaaide data is dalk verouderd. Probeer weer met Verfris.</string>
+    <string name="what_listings">lyste</string>
+    <string name="what_demands">aanvrae</string>
+    <string name="what_matches">passings</string>
+    <string name="no_produce_found">Geen produkte binne %1$d km gevind nie.</string>
+    <string name="found_one_product">1 produk binne %1$d km gevind.</string>
+    <string name="found_products">%1$d produkte binne %2$d km gevind.</string>
+    <string name="demand_posted">Aanvraag geplaas. Relevante produkte is gereed op Tuis.</string>
+    <string name="demand_updated">Aanvraag opgedateer. Relevante produkte is verfris.</string>
+    <string name="exchange_completed">Ruil as voltooi gemerk.</string>
+    <string name="rating_submitted">Gradering ingedien.</string>
+
+    <!-- Form validation -->
+    <string name="val_crop">Voer \'n gewasnaam in (1–100 karakters).</string>
+    <string name="val_quantity">Voer \'n positiewe hoeveelheid tot 1 000 000 000 in.</string>
+    <string name="val_unit">Voer \'n eenheid in, soos kg of kratte.</string>
+    <string name="val_date">Gebruik \'n geldige datum in JJJJ-MM-DD-formaat.</string>
+    <string name="val_deadline_past">Die sperdatum kan nie in die verlede wees nie.</string>
+    <string name="val_latitude">Breedtegraad moet tussen -90 en 90 wees.</string>
+    <string name="val_longitude">Lengtegraad moet tussen -180 en 180 wees.</string>
 </resources>

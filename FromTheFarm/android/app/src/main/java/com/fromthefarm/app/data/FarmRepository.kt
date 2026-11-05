@@ -14,6 +14,9 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CancellationException
 import com.fromthefarm.app.BuildConfig
+import com.fromthefarm.app.R
+import com.fromthefarm.app.ui.UiText
+import com.fromthefarm.app.ui.UserFacingException
 import kotlinx.coroutines.tasks.await
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -40,7 +43,7 @@ class FarmRepository(private val context: Context) : FarmDataSource {
     private val devicePreferences = context.getSharedPreferences("device_unlock", Context.MODE_PRIVATE)
     override fun biometricEnabled(): Boolean = auth.currentUser?.uid?.let { devicePreferences.getBoolean(it, false) } ?: false
     override fun setBiometricEnabled(enabled: Boolean) {
-        val uid = auth.currentUser?.uid ?: error("Sign in with Google first.")
+        val uid = auth.currentUser?.uid ?: throw UserFacingException(UiText.Res(R.string.err_sign_in_first))
         devicePreferences.edit().putBoolean(uid, enabled).apply()
     }
     private val auth: FirebaseAuth get() {
@@ -66,17 +69,17 @@ class FarmRepository(private val context: Context) : FarmDataSource {
         val option = GetSignInWithGoogleOption.Builder(context.getString(clientId)).build()
         val result = CredentialManager.create(activity).getCredential(activity,
             GetCredentialRequest.Builder().addCredentialOption(option).build()).credential
-        check(result is CustomCredential && result.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) { "Google did not return a supported credential." }
+        if (!(result is CustomCredential && result.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL)) throw UserFacingException(UiText.Res(R.string.err_no_credential))
         val google = GoogleIdTokenCredential.createFrom(result.data)
         auth.signInWithCredential(GoogleAuthProvider.getCredential(google.idToken, null)).await()
     }
     override suspend fun token(): String {
-        val user = auth.currentUser ?: error("Please sign in again.")
+        val user = auth.currentUser ?: throw UserFacingException(UiText.Res(R.string.err_sign_in_again))
         // Refreshing an expired token needs the network. Report that as an I/O failure so callers treat
         // it like any other offline request instead of as a broken session.
         val result = try { user.getIdToken(false).await() }
         catch (e: FirebaseNetworkException) { throw IOException("No connection to refresh the sign-in", e) }
-        return "Bearer " + (result.token ?: error("Please sign in again."))
+        return "Bearer " + (result.token ?: throw UserFacingException(UiText.Res(R.string.err_sign_in_again)))
     }
     // Registers this install's FCM token against the signed-in account. Called after
     // every sign-in and whenever Firebase rotates the token, so it must be repeatable.

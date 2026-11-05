@@ -40,7 +40,7 @@ fun RecordEditor(demand: Boolean, id: String?, listing: Listing?, request: Deman
     val location = if (demand) request?.location else listing?.location
     var latitude by rememberSaveable(id, demand) { mutableStateOf(location?.latitude?.toString() ?: "") }
     var longitude by rememberSaveable(id, demand) { mutableStateOf(location?.longitude?.toString() ?: "") }
-    var error by rememberSaveable(id, demand) { mutableStateOf<String?>(null) }
+    var error by rememberSaveable(id, demand) { mutableStateOf<Int?>(null) }
     var showDatePicker by rememberSaveable { mutableStateOf(false) }
     var photoPath by rememberSaveable(id, demand) { mutableStateOf<String?>(null) }
     var photoBusy by remember { mutableStateOf(false) }
@@ -50,7 +50,7 @@ fun RecordEditor(demand: Boolean, id: String?, listing: Listing?, request: Deman
         if (uri != null) scope.launch {
             photoBusy = true
             try { photoPath = withContext(Dispatchers.IO) { PhotoTools.prepare(context, uri).absolutePath }; error = null }
-            catch (_: Exception) { error = context.getString(R.string.photo_open_error) }
+            catch (_: Exception) { error = R.string.photo_open_error }
             finally { photoBusy = false }
         }
     }
@@ -75,12 +75,12 @@ fun RecordEditor(demand: Boolean, id: String?, listing: Listing?, request: Deman
         }
         if (photoPath != null) TextButton(enabled = !busy, onClick = { photoPath = null }) { Text(stringResource(R.string.discard_photo)) }
     }
-    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    error?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
     Button(enabled = !busy && !photoBusy, onClick = {
         error = FormValidation.validate(crop.trim(), quantity.trim(), unit.trim(), date.trim(), latitude.trim(), longitude.trim(), demand)
         if (error == null) {
             val photo = runCatching { photoPath?.let { android.util.Base64.encodeToString(File(it).readBytes(), android.util.Base64.NO_WRAP) } }
-            if (photo.isFailure) error = context.getString(R.string.photo_reselect)
+            if (photo.isFailure) error = R.string.photo_reselect
             else onSave(CropNames.normalize(crop), quantity.trim().toDouble(), unit.trim(), date.trim(), Location(latitude.trim().toDouble(), longitude.trim().toDouble()), photo.getOrNull())
         }
     }) { Text(stringResource(if (busy) R.string.saving else R.string.save)) }

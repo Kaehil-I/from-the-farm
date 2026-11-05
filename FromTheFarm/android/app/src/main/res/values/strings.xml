@@ -179,4 +179,51 @@
     <string name="biometric_no_hardware">This device does not have supported biometric hardware. You can use Google sign-in.</string>
     <string name="biometric_hw_unavailable">Biometric hardware is temporarily unavailable. Try again or use Google sign-in.</string>
     <string name="biometric_unavailable_device">Biometric authentication is unavailable on this device. You can use Google sign-in.</string>
+
+    <!-- Messages shown after actions and errors -->
+    <string name="signin_cancelled">Sign-in cancelled. You can try again when ready.</string>
+    <string name="err_session_expired">Your session expired or was rejected. Please sign in again.</string>
+    <string name="err_forbidden">You do not have permission for this action.</string>
+    <string name="err_not_found">This record is no longer available. Refresh and try again.</string>
+    <string name="err_conflict">This action was already recorded. Refresh to check its state.</string>
+    <string name="err_service_unavailable">The farm service is unavailable. Please try again.</string>
+    <string name="err_rejected">The service rejected the request (%1$d). Check your inputs.</string>
+    <string name="err_network">Cannot reach the farm service. Render may be waking up; wait a moment, check your connection, and retry.</string>
+    <string name="err_config_incomplete">Configuration is incomplete.</string>
+    <string name="err_generic">The action could not complete. Please try again.</string>
+    <string name="err_sign_in_first">Sign in with Google first.</string>
+    <string name="err_sign_in_again">Please sign in again.</string>
+    <string name="err_no_credential">Google did not return a supported credential.</string>
+    <string name="err_refresh_before_confirm">Refresh this match before confirming it.</string>
+    <string name="err_only_confirmed_complete">Only confirmed exchanges can be completed.</string>
+    <string name="err_only_completed_rate">Only completed matches can be rated.</string>
+    <string name="err_already_rated">You have already rated this match.</string>
+    <string name="saved_offline">Saved on this phone. It will upload automatically when you\'re back online.</string>
+    <string name="sign_in_again_upload">Sign in again to upload the records saved on this phone.</string>
+    <string name="uploaded_one_record">Uploaded 1 record saved while offline.</string>
+    <string name="uploaded_records">Uploaded %1$d records saved while offline.</string>
+    <string name="biometric_enabled_msg">Biometric unlock enabled on this device.</string>
+    <string name="biometric_disabled_msg">Biometric unlock disabled on this device.</string>
+    <string name="device_unlocked">Device unlocked.</string>
+    <string name="preferences_saved">Preferences saved.</string>
+    <string name="refresh_failed">Could not refresh %1$s. Previously loaded data may be out of date. Retry with Refresh.</string>
+    <string name="what_listings">listings</string>
+    <string name="what_demands">demand requests</string>
+    <string name="what_matches">matches</string>
+    <string name="no_produce_found">No produce found within %1$d km.</string>
+    <string name="found_one_product">Found 1 product within %1$d km.</string>
+    <string name="found_products">Found %1$d products within %2$d km.</string>
+    <string name="demand_posted">Demand posted. Relevant produce is ready on Home.</string>
+    <string name="demand_updated">Demand updated. Relevant produce has been refreshed.</string>
+    <string name="exchange_completed">Exchange marked completed.</string>
+    <string name="rating_submitted">Rating submitted.</string>
+
+    <!-- Form validation -->
+    <string name="val_crop">Enter a crop name (1–100 characters).</string>
+    <string name="val_quantity">Enter a positive quantity up to 1,000,000,000.</string>
+    <string name="val_unit">Enter a unit, such as kg or crates.</string>
+    <string name="val_date">Use a valid date in YYYY-MM-DD format.</string>
+    <string name="val_deadline_past">The deadline cannot be in the past.</string>
+    <string name="val_latitude">Latitude must be between -90 and 90.</string>
+    <string name="val_longitude">Longitude must be between -180 and 180.</string>
 </resources>

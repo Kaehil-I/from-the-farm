@@ -1,5 +1,6 @@
 package com.fromthefarm.app.ui
 
+import com.fromthefarm.app.R
 import android.content.Context
 import com.fromthefarm.app.data.*
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +46,7 @@ class SettingsProfileTest {
         assertEquals("+27 82 000 0000", sent.phone)
         assertFalse(sent.notificationsEnabled)
         assertEquals("zu", vm.state.value.profile?.language)
-        assertEquals("Preferences saved.", vm.state.value.message)
+        assertEquals(UiText.Res(R.string.preferences_saved), vm.state.value.message)
         assertNull(vm.state.value.error)
     }
 
