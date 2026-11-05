@@ -53,8 +53,9 @@ These notes cover everything added after the Part 2 integration (pull request #8
 ## Known limitations and verification
 
 - **Translations need a native-speaker review.** The isiZulu and Afrikaans text is a first draft. The push notification wording written by the API has also not been reviewed.
-- **Not yet verified on a signed-in device.** The sign-in screen and its error message were checked in all three languages on an emulator. Settings, Home, Listings, Calendar, match details, validation and action messages in the three languages still need a device run, because Google sign-in needs the build's signing key to be registered in the Firebase project. See `Documentation/Test-Matrix.md`.
-- **Push delivery and biometrics on hardware** have not been demonstrated on a physical device in these notes.
+- **Tested on an emulator with fake data, not with a real account.** The real screens and ViewModel were run in English, isiZulu and Afrikaans as both a Farmer and a Buyer (Home, Listings or Demand, forms, Calendar, Settings, match details, the locked screen) and the language switch from Settings was tested end to end. All 5 of those tests pass. Google sign-in, the real API and a real phone were not used, because sign-in needs the build's signing key to be registered in the Firebase project. Details and the rows still not run are in `Documentation/Test-Matrix.md`.
+- **Confirmation messages vanish quickly.** "Preferences saved." and "Exchange marked completed." were not seen on screen within 3 seconds, most likely because the automatic refresh that follows clears them. This predates the localisation work (Test-Matrix finding F-01).
+- **Push delivery, the system fingerprint dialog and the Android notification settings screen** have not been checked on a physical device.
 - **Offline scope.** Only creating is queued. Editing and deleting need a connection, and a cold start without a connection cannot load the profile.
 - **Photos** are still stored inline on the record, not in object storage.
 - **Unit tests only on this branch.** All 65 Android unit tests pass at commit `58ade8f`. The Part 1 preview screens are not wired into the app and remain English.
