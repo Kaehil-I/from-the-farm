@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.devtools.ksp")
 }
 
 // CI can compile without cloud credentials; real sign-in requires the team's config file.
@@ -53,6 +54,11 @@ android {
 
 dependencies {
     implementation("androidx.biometric:biometric:1.1.0")
+    // Offline storage and background sync. Room 2.6.x is the last line that builds with Kotlin 1.9.
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-messaging")
