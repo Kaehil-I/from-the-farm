@@ -16,6 +16,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fromthefarm.app.data.*
+import com.fromthefarm.app.data.offline.PendingRecord
+import com.fromthefarm.app.data.offline.RecordKind
+import com.fromthefarm.app.data.offline.SyncStatus
 import com.fromthefarm.app.ui.FarmViewModel
 import com.fromthefarm.app.ui.screens.RecordEditor
 import com.fromthefarm.app.ui.screens.ProfileEditor
@@ -30,12 +33,14 @@ import java.time.ZoneOffset
 @Composable
 fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(LocalContext.current.applicationContext))) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val sync by vm.sync.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var tab by rememberSaveable { mutableStateOf("Home") }
     var editor by rememberSaveable { mutableStateOf<String?>(null) }
     var editingId by rememberSaveable { mutableStateOf<String?>(null) }
     var matchId by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteId by remember { mutableStateOf<String?>(null) }
+    var discardPendingId by remember { mutableStateOf<String?>(null) }
     var completeId by remember { mutableStateOf<String?>(null) }
     var lastUserId by rememberSaveable { mutableStateOf<String?>(null) }
     var lastRole by rememberSaveable { mutableStateOf<String?>(null) }
@@ -102,6 +107,8 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
             if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             state.message?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+            if (onboarded && (sync.offline || sync.syncing || sync.records.isNotEmpty()))
+                SyncBanner(sync.offline, sync.syncing, sync.pendingCount, sync.failedCount, vm::syncNow)
             if (profile == null && state.firebaseSignedIn) {
                 Text("Google sign-in succeeded.", style = MaterialTheme.typography.titleLarge)
                 Text("Your farm profile could not be loaded yet. Retry when the service is available.")
@@ -198,6 +205,16 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
                         Button(enabled = !state.busy, onClick = { editingId = null; demandSeedCrop = null; editor = if (farmer) "listing" else "demand" }) {
                             Text(if (farmer) "Add listing" else "Post demand")
                         }
+                        val pendingKind = if (farmer) RecordKind.LISTING else RecordKind.DEMAND
+                        val pendingRecords = sync.records.filter { it.kind == pendingKind }
+                        if (pendingRecords.isNotEmpty()) {
+                            Text("Saved on this phone", style = MaterialTheme.typography.titleMedium)
+                            pendingRecords.forEach { record ->
+                                PendingRecordCard(record, sync.syncing, { vm.retryRecord(record.clientGeneratedId) },
+                                    { discardPendingId = record.clientGeneratedId })
+                            }
+                            HorizontalDivider()
+                        }
                         if (farmer) {
                             if (state.loaded && state.error == null && state.listings.isEmpty()) Text("You have no active listings.")
                             state.listings.forEach { item ->
@@ -250,6 +267,55 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
         text = { Text("It will no longer appear in your active records.") },
         confirmButton = { TextButton(onClick = { deleteId = null; vm.delete(id, !farmer) }) { Text("Remove") } },
         dismissButton = { TextButton(onClick = { deleteId = null }) { Text("Cancel") } }) }
+    discardPendingId?.let { id ->
+        val record = sync.records.find { it.clientGeneratedId == id }
+        AlertDialog(onDismissRequest = { discardPendingId = null },
+            title = { Text("Discard saved record?") },
+            text = { Text("${record?.title ?: "This record"} has not been uploaded. Discarding it removes the only saved copy from this phone.") },
+            confirmButton = { TextButton(enabled = !sync.syncing, onClick = {
+                discardPendingId = null
+                vm.discardRecord(id)
+            }) { Text("Discard") } },
+            dismissButton = { TextButton(onClick = { discardPendingId = null }) { Text("Keep") } })
+    }
+}
+
+@Composable
+private fun SyncBanner(offline: Boolean, syncing: Boolean, pendingCount: Int, failedCount: Int, syncNow: () -> Unit) {
+    val message = when {
+        offline -> "You're offline. New listings and demands will stay on this phone until the connection returns."
+        syncing -> "Uploading saved records…"
+        failedCount > 0 -> "$failedCount saved record${if (failedCount == 1) "" else "s"} need attention."
+        else -> "$pendingCount record${if (pendingCount == 1) "" else "s"} waiting to upload."
+    }
+    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(if (offline) "Offline mode" else "Sync status", style = MaterialTheme.typography.titleMedium)
+            Text(message)
+            if (!offline && !syncing && pendingCount > 0)
+                TextButton(onClick = syncNow) { Text("Sync now") }
+        }
+    }
+}
+
+@Composable
+private fun PendingRecordCard(record: PendingRecord, syncing: Boolean, retry: () -> Unit, discard: () -> Unit) {
+    val failed = record.status == SyncStatus.FAILED
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(record.title, style = MaterialTheme.typography.titleMedium)
+            Text(record.detail)
+            Text(if (failed) "Upload failed" else "Waiting to upload",
+                color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
+            if (failed) {
+                record.lastError?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                Row {
+                    TextButton(enabled = !syncing, onClick = retry) { Text("Retry") }
+                    TextButton(enabled = !syncing, onClick = discard) { Text("Discard") }
+                }
+            }
+        }
+    }
 }
 
 @Composable
