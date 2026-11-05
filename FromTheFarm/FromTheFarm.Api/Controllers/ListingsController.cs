@@ -14,11 +14,16 @@ public class ListingsController : ControllerBase
 {
     private readonly IMongoRepository<Listing> _listings;
     private readonly IMongoRepository<UserProfile> _users;
+    private readonly MatchGenerationService _matching;
 
-    public ListingsController(IMongoRepository<Listing> listings, IMongoRepository<UserProfile> users)
+    public ListingsController(
+        IMongoRepository<Listing> listings,
+        IMongoRepository<UserProfile> users,
+        MatchGenerationService matching)
     {
         _listings = listings;
         _users = users;
+        _matching = matching;
     }
 
     public record CreateListingRequest(
@@ -69,7 +74,8 @@ public class ListingsController : ControllerBase
         // Authorisation comes before validation: a caller who may not create a
         // listing at all should not learn anything about what a valid one looks like.
         var uid = User.GetFirebaseUid();
-        var notAllowed = RoleRequirement.Check(await _users.GetByIdAsync(uid), "Farmer", "create listings");
+        var profile = await _users.GetByIdAsync(uid);
+        var notAllowed = RoleRequirement.Check(profile, "Farmer", "create listings");
         if (notAllowed is not null)
         {
             return StatusCode(StatusCodes.Status403Forbidden, notAllowed);
@@ -121,6 +127,11 @@ public class ListingsController : ControllerBase
         };
 
         var created = await _listings.UpsertAsync(listing);
+
+        // Match straight away so buyers with a matching demand hear about it now
+        // rather than whenever somebody next opens their feed.
+        await _matching.OnListingCreatedAsync(created, profile!.SearchRadiusKm);
+
         return CreatedAtAction(nameof(GetListings), new { }, created);
     }
 

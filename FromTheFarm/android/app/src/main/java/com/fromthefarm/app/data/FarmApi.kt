@@ -25,6 +25,7 @@ data class Match(val matchId: String, val score: Double, val counterpart: Counte
 data class Contact(val displayName: String?, val phone: String?)
 data class MatchDetail(val matchId: String, val score: Double, val status: String, val counterpartContact: Contact? = null)
 data class RatingWrite(val thumbsUp: Boolean)
+data class DeviceTokenWrite(val token: String)
 
 interface FarmApi {
     @POST("auth/session") suspend fun session(@Header("Authorization") token: String, @Body body: SessionRequest): Session
@@ -45,5 +46,8 @@ interface FarmApi {
     @GET("matches/{id}") suspend fun detail(@Header("Authorization") token: String, @Path("id") id: String): MatchDetail
     @POST("matches/{id}/confirm") suspend fun confirm(@Header("Authorization") token: String, @Path("id") id: String)
     @POST("matches/{id}/complete") suspend fun complete(@Header("Authorization") token: String, @Path("id") id: String)
+    @PUT("users/me/devices") suspend fun registerDevice(@Header("Authorization") token: String, @Body body: DeviceTokenWrite)
+    @HTTP(method = "DELETE", path = "users/me/devices", hasBody = true)
+    suspend fun unregisterDevice(@Header("Authorization") token: String, @Body body: DeviceTokenWrite)
     @POST("matches/{id}/rating") suspend fun rate(@Header("Authorization") token: String, @Path("id") id: String, @Body body: RatingWrite)
 }

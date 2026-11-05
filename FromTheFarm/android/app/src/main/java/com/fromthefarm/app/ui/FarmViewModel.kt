@@ -32,6 +32,13 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
     }
     private val mutable = MutableStateFlow(FarmState())
     val state = mutable.asStateFlow()
+
+    // The match a tapped notification wants opened. Held apart from FarmState because
+    // session setup rebuilds FarmState from scratch, which would drop it on a cold start.
+    private val pending = MutableStateFlow<String?>(null)
+    val pendingMatch = pending.asStateFlow()
+    fun openMatchFromNotification(matchId: String?) { if (!matchId.isNullOrBlank()) pending.value = matchId }
+    fun consumePendingMatch() { pending.value = null }
     init {
         if (repository.hasSession()) {
             val enabled = repository.biometricEnabled()
@@ -78,6 +85,12 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
         val profile = repository.api.profile(repository.token())
         mutable.value = FarmState(busy = true, firebaseSignedIn = true, profile = profile,
             biometricEnabled = repository.biometricEnabled(), biometricLocked = mutable.value.biometricLocked)
+        // Not part of the action, so a slow or failing registration never holds the UI busy.
+        viewModelScope.launch {
+            try { repository.registerDevice() }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { log("Device registration failed: ${e.javaClass.simpleName}") }
+        }
     }
     fun resumeSession() = action { establishSession() }
     fun signIn(context: Context) = action(allowLocked = true) {

@@ -240,7 +240,7 @@ public class ListingsControllerTests
     public async Task CreateListing_IsRefused_WhenTheCallerHasNoProfileAtAll()
     {
         var repository = new FakeRepository<Listing>();
-        var controller = new ListingsController(repository, new FakeRepository<UserProfile>())
+        var controller = new ListingsController(repository, new FakeRepository<UserProfile>(), Matching.Service(listings: repository))
         {
             ControllerContext = SignedInAs.User(Owner)
         };
@@ -347,7 +347,7 @@ public class ListingsControllerTests
     // and validation tests exercise the paths they were written for.
     private static ListingsController ControllerFor(
         FakeRepository<Listing> repository, string uid, UserProfile? profile = null) =>
-        new(repository, new FakeRepository<UserProfile>(profile ?? Profile(uid, "Farmer")))
+        new(repository, new FakeRepository<UserProfile>(profile ?? Profile(uid, "Farmer")), Matching.Service(listings: repository))
         {
             ControllerContext = SignedInAs.User(uid)
         };

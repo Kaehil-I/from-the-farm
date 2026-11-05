@@ -181,7 +181,7 @@ public class DemandsControllerTests
     public async Task CreateDemand_IsRefused_WhenTheCallerHasNoProfileAtAll()
     {
         var repository = new FakeRepository<DemandRequest>();
-        var controller = new DemandsController(repository, new FakeRepository<UserProfile>())
+        var controller = new DemandsController(repository, new FakeRepository<UserProfile>(), Matching.Service(demands: repository))
         {
             ControllerContext = SignedInAs.User(Owner)
         };
@@ -270,7 +270,7 @@ public class DemandsControllerTests
 
     private static DemandsController ControllerFor(
         FakeRepository<DemandRequest> repository, string uid, UserProfile? profile = null) =>
-        new(repository, new FakeRepository<UserProfile>(profile ?? Profile(uid, "Buyer")))
+        new(repository, new FakeRepository<UserProfile>(profile ?? Profile(uid, "Buyer")), Matching.Service(demands: repository))
         {
             ControllerContext = SignedInAs.User(uid)
         };

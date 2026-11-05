@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Security.Claims;
+using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +12,7 @@ namespace FromTheFarm.Api.Tests;
 // controllers use are supported — Collection is a LINQ entry point onto a live
 // cluster and has no meaningful in-memory equivalent, so reaching for it in a
 // test is a mistake worth failing loudly on.
-internal sealed class FakeRepository<T> : IMongoRepository<T> where T : class, IDocument
+internal class FakeRepository<T> : IMongoRepository<T> where T : class, IDocument
 {
     private readonly Dictionary<string, T> _documents = new(StringComparer.Ordinal);
 
@@ -50,7 +51,7 @@ internal sealed class FakeRepository<T> : IMongoRepository<T> where T : class, I
 
     // The driver translates these expressions into a Mongo filter; here the same
     // predicate is simply compiled and run over the in-memory documents.
-    public Task<List<T>> FindAsync(Expression<Func<T, bool>> filter) =>
+    public virtual Task<List<T>> FindAsync(Expression<Func<T, bool>> filter) =>
         Task.FromResult(_documents.Values.Where(filter.Compile()).ToList());
 
     public Task<bool> AnyAsync(Expression<Func<T, bool>> filter) =>
@@ -78,4 +79,54 @@ internal static class SignedInAs
             }
         };
     }
+}
+
+// Records what would have been pushed, instead of calling FCM.
+internal sealed class FakePushSender : IPushSender
+{
+    public List<(IReadOnlyCollection<string> Tokens, PushMessage Message)> Sent { get; } = new();
+
+    // Tokens this fake reports back as permanently dead, like FCM's Unregistered.
+    public HashSet<string> DeadTokens { get; } = new();
+
+    public bool Throws { get; set; }
+
+    public Task<IReadOnlyList<string>> SendAsync(
+        IReadOnlyCollection<string> tokens,
+        PushMessage message,
+        CancellationToken cancellationToken = default)
+    {
+        if (Throws)
+        {
+            throw new InvalidOperationException("FCM is unreachable.");
+        }
+
+        Sent.Add((tokens, message));
+        return Task.FromResult<IReadOnlyList<string>>(tokens.Where(DeadTokens.Contains).ToList());
+    }
+}
+
+internal static class Matching
+{
+    // A match generator over in-memory repositories. Anything not supplied is
+    // an empty repository, so a test only wires up what it is about.
+    public static MatchGenerationService Service(
+        FakeRepository<Listing>? listings = null,
+        FakeRepository<DemandRequest>? demands = null,
+        FakeRepository<MatchDocument>? matches = null,
+        FakeRepository<UserProfile>? users = null,
+        FakePushSender? push = null) =>
+        new(
+            listings ?? new FakeRepository<Listing>(),
+            demands ?? new FakeRepository<DemandRequest>(),
+            matches ?? new FakeRepository<MatchDocument>(),
+            new MatchingService(),
+            Notifications(users, push),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<MatchGenerationService>.Instance);
+
+    public static NotificationService Notifications(FakeRepository<UserProfile>? users = null, FakePushSender? push = null) =>
+        new(
+            users ?? new FakeRepository<UserProfile>(),
+            push ?? new FakePushSender(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<NotificationService>.Instance);
 }

@@ -67,6 +67,16 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
         }
         if (profile != null) lastRole = profile.role
     }
+    val pendingMatch by vm.pendingMatch.collectAsStateWithLifecycle()
+    // A tapped match notification: open that match once the user is signed in and onboarded.
+    LaunchedEffect(pendingMatch, onboarded) {
+        val id = pendingMatch
+        if (id != null && onboarded) {
+            tab = "Home"; editor = null; editingId = null; deleteId = null; completeId = null
+            matchId = id
+            vm.consumePendingMatch()
+        }
+    }
     LaunchedEffect(onboarded, state.loaded, state.busy, state.error) {
         if (onboarded && !state.loaded && !state.busy && state.error == null) vm.refresh()
     }

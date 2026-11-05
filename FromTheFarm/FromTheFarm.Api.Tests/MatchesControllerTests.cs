@@ -367,6 +367,144 @@ public class MatchesControllerTests
         Assert.Equal(1.0, stored.Score, precision: 3);
     }
 
+    // ---- Notifications --------------------------------------------------------------
+
+    [Fact]
+    public async Task GetFeed_NotifiesTheBuyer_WhenAFarmersFeedCreatesANewMatch()
+    {
+        var push = new FakePushSender();
+        var controller = ControllerFor(Farmer,
+            users: new FakeRepository<UserProfile>(AProfile(Farmer, "Farmer"), WithDevice(AProfile(Buyer, "Buyer"), "buyer-phone")),
+            listings: new FakeRepository<Listing>(AListing()),
+            demands: new FakeRepository<DemandRequest>(ADemand()),
+            push: push);
+
+        await controller.GetFeed();
+
+        var (tokens, message) = Assert.Single(push.Sent);
+        Assert.Equal(new[] { "buyer-phone" }, tokens);
+        Assert.Equal("match_new", message.Data["type"]);
+        Assert.Equal(MatchId, message.Data["matchId"]);
+        Assert.Contains("Tomatoes", message.Body);
+    }
+
+    [Fact]
+    public async Task GetFeed_DoesNotNotifyAgain_WhenTheMatchAlreadyExists()
+    {
+        var push = new FakePushSender();
+        var controller = ControllerFor(Farmer,
+            matches: new FakeRepository<MatchDocument>(AMatch("Suggested")),
+            users: new FakeRepository<UserProfile>(AProfile(Farmer, "Farmer"), WithDevice(AProfile(Buyer, "Buyer"), "buyer-phone")),
+            listings: new FakeRepository<Listing>(AListing()),
+            demands: new FakeRepository<DemandRequest>(ADemand()),
+            push: push);
+
+        await controller.GetFeed();
+        await controller.GetFeed();
+
+        Assert.Empty(push.Sent);
+    }
+
+    [Fact]
+    public async Task ConfirmMatch_NotifiesTheOtherParty_NotTheOneConfirming()
+    {
+        var push = new FakePushSender();
+        var users = new FakeRepository<UserProfile>(
+            WithDevice(AProfile(Farmer, "Farmer"), "farmer-phone"),
+            WithDevice(AProfile(Buyer, "Buyer"), "buyer-phone"));
+        var controller = ControllerFor(Buyer, new FakeRepository<MatchDocument>(AMatch("Suggested")), users, push: push);
+
+        await controller.ConfirmMatch(MatchId);
+
+        var (tokens, message) = Assert.Single(push.Sent);
+        Assert.Equal(new[] { "farmer-phone" }, tokens);
+        Assert.Equal("match_confirmed", message.Data["type"]);
+    }
+
+    [Fact]
+    public async Task CompleteMatch_NotifiesTheOtherParty()
+    {
+        var push = new FakePushSender();
+        var users = new FakeRepository<UserProfile>(
+            WithDevice(AProfile(Farmer, "Farmer"), "farmer-phone"),
+            WithDevice(AProfile(Buyer, "Buyer"), "buyer-phone"));
+        var controller = ControllerFor(Farmer, new FakeRepository<MatchDocument>(AMatch("Confirmed")), users, push: push);
+
+        await controller.CompleteMatch(MatchId);
+
+        var (tokens, message) = Assert.Single(push.Sent);
+        Assert.Equal(new[] { "buyer-phone" }, tokens);
+        Assert.Equal("match_completed", message.Data["type"]);
+    }
+
+    [Fact]
+    public async Task ConfirmMatch_SendsNothing_WhenTheOtherPartyHasTurnedNotificationsOff()
+    {
+        var push = new FakePushSender();
+        var farmer = WithDevice(AProfile(Farmer, "Farmer"), "farmer-phone");
+        farmer.NotificationsEnabled = false;
+        var controller = ControllerFor(Buyer, new FakeRepository<MatchDocument>(AMatch("Suggested")),
+            new FakeRepository<UserProfile>(farmer, AProfile(Buyer, "Buyer")), push: push);
+
+        await controller.ConfirmMatch(MatchId);
+
+        Assert.Empty(push.Sent);
+    }
+
+    [Fact]
+    public async Task ConfirmMatch_SendsNothing_WhenTheOtherPartyHasNoRegisteredDevice()
+    {
+        var push = new FakePushSender();
+        var controller = ControllerFor(Buyer, new FakeRepository<MatchDocument>(AMatch("Suggested")),
+            new FakeRepository<UserProfile>(AProfile(Farmer, "Farmer"), AProfile(Buyer, "Buyer")), push: push);
+
+        await controller.ConfirmMatch(MatchId);
+
+        Assert.Empty(push.Sent);
+    }
+
+    [Fact]
+    public async Task ConfirmMatch_StillSucceeds_WhenSendingThrows()
+    {
+        var matches = new FakeRepository<MatchDocument>(AMatch("Suggested"));
+        var controller = ControllerFor(Buyer, matches,
+            new FakeRepository<UserProfile>(WithDevice(AProfile(Farmer, "Farmer"), "farmer-phone"), AProfile(Buyer, "Buyer")),
+            push: new FakePushSender { Throws = true });
+
+        var result = await controller.ConfirmMatch(MatchId);
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.Equal("Confirmed", matches.Documents[MatchId].Status);
+    }
+
+    [Fact]
+    public async Task ConfirmMatch_DropsATokenFcmReportsAsDead()
+    {
+        var push = new FakePushSender();
+        push.DeadTokens.Add("uninstalled-phone");
+        var farmer = WithDevice(WithDevice(AProfile(Farmer, "Farmer"), "uninstalled-phone"), "current-phone");
+        var users = new FakeRepository<UserProfile>(farmer, AProfile(Buyer, "Buyer"));
+        var controller = ControllerFor(Buyer, new FakeRepository<MatchDocument>(AMatch("Suggested")), users, push: push);
+
+        await controller.ConfirmMatch(MatchId);
+
+        Assert.Equal("current-phone", Assert.Single(users.Documents[Farmer].DeviceTokens).Token);
+    }
+
+    [Fact]
+    public async Task ConfirmMatch_WritesTheMessageInTheRecipientsLanguage()
+    {
+        var push = new FakePushSender();
+        var farmer = WithDevice(AProfile(Farmer, "Farmer"), "farmer-phone");
+        farmer.Language = "af";
+        var controller = ControllerFor(Buyer, new FakeRepository<MatchDocument>(AMatch("Suggested")),
+            new FakeRepository<UserProfile>(farmer, AProfile(Buyer, "Buyer")), push: push);
+
+        await controller.ConfirmMatch(MatchId);
+
+        Assert.Equal("Passing bevestig", Assert.Single(push.Sent).Message.Title);
+    }
+
     // ---- Helpers -------------------------------------------------------------------
 
     private static MatchesController ControllerFor(
@@ -374,16 +512,21 @@ public class MatchesControllerTests
         FakeRepository<MatchDocument>? matches = null,
         FakeRepository<UserProfile>? users = null,
         FakeRepository<Listing>? listings = null,
-        FakeRepository<DemandRequest>? demands = null) =>
-        new(
-            users ?? new FakeRepository<UserProfile>(),
-            listings ?? new FakeRepository<Listing>(),
-            demands ?? new FakeRepository<DemandRequest>(),
-            matches ?? new FakeRepository<MatchDocument>(),
-            new MatchingService())
+        FakeRepository<DemandRequest>? demands = null,
+        FakePushSender? push = null)
+    {
+        var userRepository = users ?? new FakeRepository<UserProfile>();
+        var matchRepository = matches ?? new FakeRepository<MatchDocument>();
+        var pushSender = push ?? new FakePushSender();
+        return new MatchesController(
+            userRepository,
+            matchRepository,
+            Matching.Service(listings, demands, matchRepository, userRepository, pushSender),
+            Matching.Notifications(userRepository, pushSender))
         {
             ControllerContext = SignedInAs.User(uid)
         };
+    }
 
     private static MatchesController.MatchDetailResponse Detail(ActionResult<MatchesController.MatchDetailResponse> result) =>
         Assert.IsType<MatchesController.MatchDetailResponse>(Assert.IsType<OkObjectResult>(result.Result).Value);
@@ -394,6 +537,12 @@ public class MatchesControllerTests
     private static FakeRepository<UserProfile> BothUsers() => new(
         AProfile(Farmer, "Farmer", "Farmer Fay", "0821111111"),
         AProfile(Buyer, "Buyer", "Buyer Ben", "0832222222"));
+
+    private static UserProfile WithDevice(UserProfile profile, string token)
+    {
+        profile.DeviceTokens.Add(new DeviceToken { Token = token });
+        return profile;
+    }
 
     private static UserProfile AProfile(string uid, string? role, string name = "Someone", string? phone = null) =>
         new() { Id = uid, UserId = uid, Role = role, DisplayName = name, Phone = phone };
