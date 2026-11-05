@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">From The Farm</string>
-    <string name="language_title">Language</string>
 
     <!-- Navigation -->
     <string name="tab_home">Home</string>

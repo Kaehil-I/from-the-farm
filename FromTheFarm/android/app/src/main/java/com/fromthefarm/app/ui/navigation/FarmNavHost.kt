@@ -19,13 +19,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fromthefarm.app.R
 import com.fromthefarm.app.data.*
+import com.fromthefarm.app.ui.AppLanguage
 import com.fromthefarm.app.ui.FarmViewModel
 import com.fromthefarm.app.ui.screens.RecordEditor
 import com.fromthefarm.app.ui.screens.ProfileEditor
 import com.fromthefarm.app.ui.screens.NearbyFilter
 import com.fromthefarm.app.ui.screens.ListingPhoto
 import com.fromthefarm.app.ui.screens.BiometricAction
-import com.fromthefarm.app.ui.screens.LanguagePicker
 import kotlin.math.roundToInt
 import java.time.Instant
 import java.time.ZoneOffset
@@ -69,6 +69,7 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
     var lastRole by rememberSaveable { mutableStateOf<String?>(null) }
     var demandSeedCrop by rememberSaveable { mutableStateOf<String?>(null) }
     val profile = state.profile
+    LaunchedEffect(profile?.language) { profile?.language?.let(AppLanguage::apply) }
     if (state.biometricLocked) {
         Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(stringResource(R.string.locked_title), style = MaterialTheme.typography.headlineSmall)
@@ -256,8 +257,6 @@ fun FarmNavHost(vm: FarmViewModel = viewModel(factory = FarmViewModel.factory(Lo
                     }
                     "Settings" -> {
                         ProfileEditor(profile, state.busy, false, vm::saveProfile)
-                        HorizontalDivider()
-                        LanguagePicker()
                         HorizontalDivider()
                         Text(stringResource(R.string.device_security), style = MaterialTheme.typography.titleMedium)
                         if (!state.biometricEnabled) BiometricAction(stringResource(R.string.enable_biometric_device), !state.busy, vm::enableBiometrics, vm::biometricError)

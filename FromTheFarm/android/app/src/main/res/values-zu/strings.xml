@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">From The Farm</string>
-    <string name="language_title">Ulimi</string>
 
     <!-- Navigation -->
     <string name="tab_home">Ikhaya</string>
