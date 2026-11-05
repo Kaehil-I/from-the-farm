@@ -110,6 +110,7 @@ android/app/src/main/java/com/fromthefarm/app/
 │   ├── FarmRepository.kt             — Firebase Google sign-in, ID token, biometric-enabled flag, Retrofit client
 │   ├── BuyerRecommendations.kt       — two-section buyer Home feed, distance ordering and deduplication
 │   ├── CropNames.kt                  — case and spacing normalization for crop names
+│   ├── offline/                      — Room tables, outbox queue, upload logic, background sync and connectivity (see Offline sync)
 │   ├── FormValidation.kt             — shared listing/demand field validation
 │   ├── UserRole.kt                   — FARMER / BUYER
 │   └── SampleData.kt                 — retained for the Part 1 preview screens only; live screens never use it
@@ -129,6 +130,22 @@ android/app/src/main/java/com/fromthefarm/app/
     ├── ui/FarmViewModelTest.kt       — session, error handling, save/delete, match lifecycle
     └── ui/SettingsProfileTest.kt
 ```
+
+## Offline sync
+
+Creating a listing or a demand request works without a connection. The app keeps the record on the phone and uploads it later, and the server guarantees it is stored once however many times the upload is retried.
+
+- Every new record gets a `clientGeneratedId` (a random UUID) on the phone before the first attempt. If the request fails because there is no connection, or the service is asleep and times out, the record is saved in a Room table called the outbox together with that id, and the form closes with a "Saved on this phone" message.
+- The outbox uploads on its own. While the app is open, a network callback (Android Developers, n.d.-e) starts an upload as soon as the phone has a working connection. If the app has been closed, a WorkManager job that only runs while a network is available does it, retrying with exponential back-off (Android Developers, n.d.-d). Records go oldest first, one upload at a time.
+- A retry can never create a second record. The API looks for an existing record with the same owner and `clientGeneratedId` before creating one and returns it with 200 if found. A unique partial index on (owner, `clientGeneratedId`) in MongoDB is the backstop for two retries that arrive at the same moment; it is partial rather than sparse because a compound sparse index still indexes records that have only one of the two fields.
+- Upload outcomes are handled by cause. A dropped connection leaves the record queued and is not counted as an attempt. A 5xx, 408 or 429 response counts an attempt and the record is marked **failed** after five. Any other refusal (validation, ownership) marks it failed immediately with a message, and the next record still uploads. A 401 pauses uploading until the person signs in again, and nothing is lost.
+- Reading keeps working when the connection drops during a session. The last listings and demands the server returned are cached in Room per user and shown if a refresh fails. Signing out clears that cached copy; records that have not uploaded yet stay on the phone and upload the next time the same account signs in. Every query is scoped to the signed-in user.
+- The screens read sync status from `FarmViewModel.sync`: `offline`, `syncing`, `records` (each with `PENDING` or `FAILED` status and the last error), `pendingCount` and `failedCount`, plus `syncNow()`, `retryRecord(id)` and `discardRecord(id)`. It sits outside `FarmState` so a sign-in or sign-out cannot wipe the queue the person is looking at.
+- Limits: only creating is queued, so editing or deleting a record needs a connection. Starting the app from a cold start still needs a connection, because the session and profile are not cached. A queued listing photo is still stored inline with the record, as it is on the server, until photos move to object storage. The Room schema is version 1 with no migration yet; the first change to a table needs one, because the outbox holds unsent data.
+
+The storage, queue and upload rules are covered by 13 unit tests: the upload logic against a mock server (ordering, a dropped connection reusing the same id, refusals, retry limit, a rejected login, per-account scoping, duplicate ids) and the view model (queueing while offline, upload on reconnect, a lost response not duplicating, a refused create not being queued, demands, retry and discard). The Room database itself and the connectivity callback need a device or emulator; `Documentation/Offline-Sync-Demo.md` has the steps to demonstrate and verify them.
+
+Room is the Android-recommended way to keep structured data in a local SQLite database (Android Developers, n.d.-c).
 
 ## Testing status
 
@@ -153,7 +170,7 @@ cd android
 ## Known gaps
 
 - Push notifications (Firebase Cloud Messaging) are not implemented on either side.
-- Offline creation and sync (Room) is not implemented. The API already accepts a `clientGeneratedId` for it.
+- Offline creation and sync covers new listings and demand requests only. Editing and deleting a record needs a connection (see Offline sync).
 - The language selector (English / isiZulu / Afrikaans) saves to the profile, but the app's text is not translated — every screen is English regardless of the choice.
 - Editing a listing can replace its photo but not remove it, and photos are stored inline on the listing document as base64, which is a stopgap for real object storage.
 - The rating endpoint is `POST /matches/{id}/rating`; the design document specifies `/ratings` plus a `GET` for the caller's own rating, so the app tracks "already rated" locally.
@@ -174,6 +191,12 @@ cd android
 Android Developers. n.d.-a. *Jetpack Compose UI app development toolkit*. Available at: https://developer.android.com/compose (Accessed: 22 September 2026).
 
 Android Developers. n.d.-b. *Show a biometric authentication dialog*. Available at: https://developer.android.com/identity/sign-in/biometric-auth (Accessed: 22 September 2026).
+
+Android Developers. n.d.-c. *Save data in a local database using Room*. Available at: https://developer.android.com/training/data-storage/room (Accessed: 5 November 2026).
+
+Android Developers. n.d.-d. *Getting started with WorkManager*. Available at: https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started (Accessed: 5 November 2026).
+
+Android Developers. n.d.-e. *Read network state*. Available at: https://developer.android.com/training/basics/network-ops/reading-network-state (Accessed: 5 November 2026).
 
 Google Firebase. n.d.-a. *Authenticate with Google on Android*. Available at: https://firebase.google.com/docs/auth/android/google-signin (Accessed: 22 September 2026).
 
