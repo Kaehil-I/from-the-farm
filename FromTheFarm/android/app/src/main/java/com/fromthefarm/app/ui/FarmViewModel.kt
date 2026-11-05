@@ -8,12 +8,16 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
 import com.fromthefarm.app.data.*
+import com.fromthefarm.app.data.offline.*
+import com.google.gson.Gson
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
+import java.util.UUID
 import java.util.Locale
 import androidx.credentials.exceptions.GetCredentialCancellationException
 
@@ -24,14 +28,36 @@ data class FarmState(val busy: Boolean = false, val error: String? = null, val m
     val matches: List<Match> = emptyList(), val detail: MatchDetail? = null, val loaded: Boolean = false,
     val ratedMatches: Set<String> = emptySet(), val nearbySearchPerformed: Boolean = false)
 
-class FarmViewModel(private val repository: FarmDataSource, private val log: (String) -> Unit = {}) : ViewModel() {
+class FarmViewModel(private val repository: FarmDataSource,
+    private val offline: OfflineSupport = OfflineSupport.none(),
+    private val log: (String) -> Unit = {}) : ViewModel() {
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
-            initializer { FarmViewModel(FarmRepository(context.applicationContext)) { Log.d("FarmState", it) } }
+            initializer { FarmViewModel(FarmRepository(context.applicationContext), OfflineSupport.forContext(context)) { Log.d("FarmState", it) } }
         }
+        private const val SAVED_OFFLINE = "Saved on this phone. It will upload automatically when you're back online."
     }
     private val mutable = MutableStateFlow(FarmState())
     val state = mutable.asStateFlow()
+
+    // Offline sync status for the UI: records waiting to upload, whether the phone is offline, and
+    // whether an upload is running. Separate from FarmState because FarmState is rebuilt from scratch
+    // on sign-in and sign-out, which would otherwise throw away the queue the person is looking at.
+    private val syncMutable = MutableStateFlow(SyncUiState())
+    val sync = syncMutable.asStateFlow()
+    private val gson = Gson()
+    private val processor by lazy { OutboxProcessor(offline.store, repository.api) }
+    private var outboxJob: Job? = null
+
+    init {
+        // Upload the queue as soon as the connection comes back.
+        viewModelScope.launch {
+            offline.connectivity.collect { online ->
+                syncMutable.value = syncMutable.value.copy(offline = !online)
+                if (online) drainOutbox()
+            }
+        }
+    }
 
     // The match a tapped notification wants opened. Held apart from FarmState because
     // session setup rebuilds FarmState from scratch, which would drop it on a cold start.
@@ -57,6 +83,7 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
             catch (e: Exception) {
                 log("Action failed: ${e.javaClass.simpleName}")
                 if (e is HttpException && e.code() == 401) {
+                    forgetPrivateData(mutable.value.profile?.userId)
                     mutable.value = FarmState(busy = true)
                     try { repository.logout() } catch (cancelled: CancellationException) { throw cancelled }
                     catch (_: Exception) { log("Credential cleanup failed after session rejection") }
@@ -85,6 +112,7 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
         val profile = repository.api.profile(repository.token())
         mutable.value = FarmState(busy = true, firebaseSignedIn = true, profile = profile,
             biometricEnabled = repository.biometricEnabled(), biometricLocked = mutable.value.biometricLocked)
+        watchOutbox(profile.userId)
         // Not part of the action, so a slow or failing registration never holds the UI busy.
         viewModelScope.launch {
             try { repository.registerDevice() }
@@ -119,6 +147,7 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
         if (mutable.value.profile == null) resumeSession()
     }
     fun logout() = action(allowLocked = true) {
+        forgetPrivateData(mutable.value.profile?.userId)
         mutable.value = FarmState(busy = true)
         repository.logout()
     }
@@ -143,8 +172,16 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
             failures.add(label)
             previous
         }
-        val listings = fetch("listings", mutable.value.listings) { repository.api.listings(repository.token(), farmer) }
-        val demands = fetch("demand requests", mutable.value.demands) { repository.api.demands(repository.token()) }
+        val owner = mutable.value.profile?.userId
+        // Nothing is held in memory after a restart, so the saved copy is what someone without a connection sees.
+        val savedListings = mutable.value.listings.ifEmpty { owner?.let { offline.store.cachedListings(it) }.orEmpty() }
+        val savedDemands = mutable.value.demands.ifEmpty { owner?.let { offline.store.cachedDemands(it) }.orEmpty() }
+        val listings = fetch("listings", savedListings) {
+            repository.api.listings(repository.token(), farmer).also { fresh -> owner?.let { offline.store.cacheListings(it, fresh) } }
+        }
+        val demands = fetch("demand requests", savedDemands) {
+            repository.api.demands(repository.token()).also { fresh -> owner?.let { offline.store.cacheDemands(it, fresh) } }
+        }
         val matches = fetch("matches", mutable.value.matches) { repository.api.matches(repository.token()).sortedByDescending { it.score } }
         mutable.value = mutable.value.copy(listings = listings, nearbyListings = emptyList(), demands = demands, matches = matches,
             loaded = true, nearbySearchPerformed = false,
@@ -160,20 +197,103 @@ class FarmViewModel(private val repository: FarmDataSource, private val log: (St
         mutable.value = mutable.value.copy(nearbyListings = listings, nearbySearchPerformed = true,
             message = if (listings.isEmpty()) "No produce found within $radius km." else "Found ${listings.size} product${if (listings.size == 1) "" else "s"} within $radius km.")
     }
+    // A new record gets its id on this phone before the first attempt. If the connection drops, the
+    // record is queued under that same id and the API ignores a repeat, so it can only exist once.
     fun saveListing(id: String?, body: ListingWrite, done: () -> Unit) = action {
-        if (id == null) repository.api.createListing(repository.token(), body)
-        else repository.api.updateListing(repository.token(), id, body)
-        mutable.value = mutable.value.copy(loaded = false)
-        done() // Close only after the server acknowledged the write.
+        var queued = false
+        if (id == null) {
+            val write = body.copy(clientGeneratedId = body.clientGeneratedId ?: UUID.randomUUID().toString())
+            queued = createOrQueue(RecordKind.LISTING, write.clientGeneratedId!!, write, write.cropType,
+                "${write.quantity} ${write.unit} · ${write.harvestDate}") { repository.api.createListing(repository.token(), write) }
+        } else repository.api.updateListing(repository.token(), id, body)
+        mutable.value = if (queued) mutable.value.copy(message = SAVED_OFFLINE) else mutable.value.copy(loaded = false)
+        done() // Close only after the server acknowledged the write, or the phone has safely queued it.
     }
     fun saveDemand(id: String?, body: DemandWrite, done: () -> Unit) = action {
-        if (id == null) repository.api.createDemand(repository.token(), body)
-        else repository.api.updateDemand(repository.token(), id, body)
-        mutable.value = mutable.value.copy(loaded = false)
-        load()
-        mutable.value = mutable.value.copy(message = if (id == null)
-            "Demand posted. Relevant produce is ready on Home." else "Demand updated. Relevant produce has been refreshed.")
+        var queued = false
+        if (id == null) {
+            val write = body.copy(clientGeneratedId = body.clientGeneratedId ?: UUID.randomUUID().toString())
+            queued = createOrQueue(RecordKind.DEMAND, write.clientGeneratedId!!, write, write.cropType,
+                "${write.quantityNeeded} ${write.unit} · ${write.deadline}") { repository.api.createDemand(repository.token(), write) }
+        } else repository.api.updateDemand(repository.token(), id, body)
+        if (queued) mutable.value = mutable.value.copy(message = SAVED_OFFLINE)
+        else {
+            mutable.value = mutable.value.copy(loaded = false)
+            load()
+            mutable.value = mutable.value.copy(message = if (id == null)
+                "Demand posted. Relevant produce is ready on Home." else "Demand updated. Relevant produce has been refreshed.")
+        }
         done()
+    }
+
+    /** Sends the create now; if there is no connection, keeps it on the phone to upload later. Returns true when queued. */
+    private suspend fun createOrQueue(kind: RecordKind, clientId: String, payload: Any, title: String, detail: String,
+        send: suspend () -> Unit): Boolean {
+        try { send(); return false }
+        catch (e: CancellationException) { throw e }
+        catch (e: IOException) {
+            val owner = mutable.value.profile?.userId ?: throw e
+            offline.store.enqueue(OutboxEntry(ownerId = owner, clientGeneratedId = clientId, kind = kind.name,
+                payload = gson.toJson(payload), title = title, detail = detail, createdAt = System.currentTimeMillis()))
+            offline.scheduler.schedule()
+            log("Record queued for upload")
+            return true
+        }
+    }
+
+    // ---- Offline sync ----
+    private fun watchOutbox(owner: String) {
+        outboxJob?.cancel()
+        outboxJob = viewModelScope.launch {
+            offline.store.observeOutbox(owner).collect { entries ->
+                syncMutable.value = syncMutable.value.copy(records = entries.map { it.toPending() })
+            }
+        }
+        viewModelScope.launch { drainOutbox() }
+    }
+    /** Upload everything queued now. Safe to call at any time; does nothing when the queue is empty. */
+    fun syncNow() { viewModelScope.launch { drainOutbox() } }
+    private suspend fun drainOutbox() {
+        val owner = mutable.value.profile?.userId ?: return
+        if (syncMutable.value.syncing) return
+        syncMutable.value = syncMutable.value.copy(syncing = true)
+        try {
+            val result = processor.drain(owner) { repository.token() }
+            if (result.uploaded > 0) mutable.value = mutable.value.copy(loaded = false,
+                message = "Uploaded ${result.uploaded} record${if (result.uploaded == 1) "" else "s"} saved while offline.")
+            when (result.outcome) {
+                DrainOutcome.RETRY_LATER -> offline.scheduler.schedule() // also covers the app being closed before it works
+                DrainOutcome.NEEDS_SIGN_IN -> mutable.value = mutable.value.copy(error = "Sign in again to upload the records saved on this phone.")
+                DrainOutcome.DONE -> Unit
+            }
+        } catch (e: CancellationException) { throw e }
+        catch (e: Exception) { log("Sync failed: ${e.javaClass.simpleName}") }
+        finally { syncMutable.value = syncMutable.value.copy(syncing = false) }
+    }
+    /** Gives a failed record another go. */
+    fun retryRecord(clientId: String) {
+        val owner = mutable.value.profile?.userId ?: return
+        viewModelScope.launch {
+            offline.store.find(owner, clientId)?.let {
+                offline.store.update(it.copy(status = SyncStatus.PENDING.name, attempts = 0, lastError = null))
+            }
+            drainOutbox()
+        }
+    }
+    /** Throws a queued or failed record away without uploading it. */
+    fun discardRecord(clientId: String) {
+        val owner = mutable.value.profile?.userId ?: return
+        viewModelScope.launch { offline.store.find(owner, clientId)?.let { offline.store.remove(it.id) } }
+    }
+    // Signing out wipes the readable copy of server data. Unsent records stay on the phone for the
+    // same account's next sign-in, but stop being shown here.
+    private suspend fun forgetPrivateData(owner: String?) {
+        outboxJob?.cancel()
+        syncMutable.value = SyncUiState(offline = syncMutable.value.offline)
+        if (owner == null) return
+        try { offline.store.clearCache(owner) }
+        catch (e: CancellationException) { throw e }
+        catch (_: Exception) { log("Could not clear the saved copy") }
     }
     fun delete(id: String, demand: Boolean) = action {
         if (demand) repository.api.deleteDemand(repository.token(), id) else repository.api.deleteListing(repository.token(), id)
