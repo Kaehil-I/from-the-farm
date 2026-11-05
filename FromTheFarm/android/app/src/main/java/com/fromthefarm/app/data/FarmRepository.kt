@@ -10,6 +10,8 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.CancellationException
 import com.fromthefarm.app.BuildConfig
 import kotlinx.coroutines.tasks.await
 import okhttp3.OkHttpClient
@@ -25,6 +27,9 @@ interface FarmDataSource {
     suspend fun logout()
     fun biometricEnabled(): Boolean = false
     fun setBiometricEnabled(enabled: Boolean) {}
+
+    // Tells the API which device to push to. A no-op by default so test doubles need not care.
+    suspend fun registerDevice() {}
 }
 
 class FarmRepository(private val context: Context) : FarmDataSource {
@@ -64,8 +69,28 @@ class FarmRepository(private val context: Context) : FarmDataSource {
         val user = auth.currentUser ?: error("Please sign in again.")
         return "Bearer " + (user.getIdToken(false).await().token ?: error("Please sign in again."))
     }
+    // Registers this install's FCM token against the signed-in account. Called after
+    // every sign-in and whenever Firebase rotates the token, so it must be repeatable.
+    override suspend fun registerDevice() {
+        val fcmToken = currentPushToken() ?: return
+        api.registerDevice(token(), DeviceTokenWrite(fcmToken))
+    }
+    private suspend fun currentPushToken(): String? = try {
+        FirebaseMessaging.getInstance().token.await()
+    } catch (e: CancellationException) { throw e }
+    catch (_: Exception) { null } // No Google Play services, or Firebase unavailable: push is simply off.
+
+    // Runs while the Firebase session still exists, so the request can be authenticated.
+    // Failure is fine: the server also drops tokens that FCM reports as dead.
+    private suspend fun forgetDevice() {
+        try {
+            currentPushToken()?.let { api.unregisterDevice(token(), DeviceTokenWrite(it)) }
+            FirebaseMessaging.getInstance().deleteToken().await()
+        } catch (e: CancellationException) { throw e }
+        catch (_: Exception) { }
+    }
     override suspend fun logout() {
-        if (hasSession()) setBiometricEnabled(false)
+        if (hasSession()) { forgetDevice(); setBiometricEnabled(false) }
         if (FirebaseApp.getApps(context).isNotEmpty()) auth.signOut()
         CredentialManager.create(context).clearCredentialState(ClearCredentialStateRequest())
     }
