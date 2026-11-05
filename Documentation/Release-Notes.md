@@ -33,10 +33,11 @@ These notes cover everything added after the Part 2 integration (pull request #8
 - Biometric unlock now accepts Android-supported fingerprint and face authentication rather than strong biometrics only.
 - Hardware and enrolment problems show clearer messages.
 - Remaining Compose compile warnings in the main UI flows were removed.
+- Offline sync status and saved-record screens (pull request #13): a banner shows the offline, uploading, waiting and failed states with a **Sync now** button, and records saved on the phone are listed on the Listings or Demand screen with **Retry** and **Discard** options and a confirmation before discarding.
 
 ## Localisation (Kyra Naidoo)
 
-- **Three languages.** The whole app is available in English, isiZulu and Afrikaans. Text is in Android string resources (`values`, `values-zu`, `values-af`): 191 strings plus the 2 notification channel strings in each language.
+- **Three languages.** The whole app is available in English, isiZulu and Afrikaans. Text is in Android string resources (`values`, `values-zu`, `values-af`): 209 strings plus the 2 notification channel strings in each language.
 - **One language setting.** The profile's preferred language is the single setting. Saving it changes the app language, the app follows it on a new install, and the API writes push notifications in the same language, so the screens and the notifications never disagree. The separate in-app picker that was first built was removed for that reason.
 - **Per-app language support.** The app uses Android's per-app language mechanism, which AppCompat provides back to API 26 (the minimum SDK); it has only been run on an API 37 emulator so far. `MainActivity` now extends `AppCompatActivity`, the theme has an AppCompat parent, and a `locales_config.xml` lists the three languages, so on Android 13 and above the language can also be changed from Android's own settings.
 - **Everything the user reads is translatable.** Tabs, dialogs, forms, location and photo prompts, biometric prompts and errors, status labels (the API still sends them in English), and the notification channel name and description.
@@ -57,5 +58,6 @@ These notes cover everything added after the Part 2 integration (pull request #8
 - **Confirmation messages vanish quickly.** "Preferences saved." and "Exchange marked completed." were not seen on screen within 3 seconds, most likely because the automatic refresh that follows clears them. This predates the localisation work (Test-Matrix finding F-01).
 - **Push delivery, the system fingerprint dialog and the Android notification settings screen** have not been checked on a physical device.
 - **Offline scope.** Only creating is queued. Editing and deleting need a connection, and a cold start without a connection cannot load the profile.
+- **Failed-upload error text is still English.** The reason shown on a saved record that failed to upload is written by the upload code (`OutboxProcessor`) and stored with the record, so it is not translated yet. The rest of the offline sync screen is translated.
 - **Photos** are still stored inline on the record, not in object storage.
 - **Unit tests only on this branch.** All 65 Android unit tests pass at commit `58ade8f`. The Part 1 preview screens are not wired into the app and remain English.

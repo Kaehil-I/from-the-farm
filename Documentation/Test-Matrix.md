@@ -22,7 +22,7 @@ This is the manual test record for the Part 3 localisation work and the regressi
 | A-01 | `gradlew :app:testDebugUnitTest` runs all Android unit tests | **Pass**: 65 tests, 0 failures, 0 skipped | Run at commit `58ade8f` (test result XML under `app/build/test-results`) |
 | A-02 | Validation helper returns a string resource for each rule (crop, quantity, unit, date, past deadline, latitude, longitude) | **Pass** | `FormValidationTest` (5 tests) |
 | A-03 | ViewModel reports messages as translatable keys instead of English text | **Pass** | `FarmViewModelTest`, `OfflineQueueTest`, `SettingsProfileTest` (assert the message key) |
-| A-04 | The three strings files define the same keys | **Pass**: 191 keys in `values`, `values-zu` and `values-af`, plus 2 notification channel keys each | Key lists compared at commit `58ade8f` |
+| A-04 | The three strings files define the same keys | **Pass**: 209 keys in `values`, `values-zu` and `values-af`, plus 2 notification channel keys each | Key lists compared at commit `58ade8f` |
 
 ## B. Localisation tests
 
@@ -44,6 +44,7 @@ This is the manual test record for the Part 3 localisation work and the regressi
 | L-14 | Long text fits | Largest font size in Android settings, each language | No clipped or overlapping text on Settings, forms and match details | Not run at the largest font size. At the default size the screenshots show no clipped or overlapping text on Home, Settings and the locked screen |
 | L-15 | Dates and numbers | Open the Calendar and a form date picker in each language | The date picker follows the system locale; app text stays consistent | **Partial** on E1b: the Calendar title, hint and "select a date" text verified in all three languages. The date picker's own text was not examined. Distances use the language's decimal comma (for example "1,2 km" in Afrikaans) |
 | L-16 | Language chips show native names | Compare the chips in each language | Always "English", "isiZulu", "Afrikaans" | **Pass** on E1b |
+| L-17 | Offline sync UI | Go offline, create a listing, then read the sync banner and the saved-record card, and try Retry and Discard | Banner, card, buttons and dialog are in the active language | Not run: this screen arrived after the emulator test was run. Its text is in all three strings files, and the build and unit tests pass |
 
 ## C. Regression checklist
 
@@ -88,10 +89,11 @@ All text lives in `app/src/main/res/values/strings.xml` (English), `values-zu/st
 | Profile and settings | 15 | Done | Draft | Draft | |
 | Action messages and errors | 36 | Done | Draft | Draft | |
 | Form validation | 7 | Done | Draft | Draft | |
+| Offline sync (banner, saved-record cards, discard dialog) | 18 | Done | Draft | Draft | |
 | Notification channel name and description | 2 | Done | Draft | Draft | |
 | Push notification text (written by the API, `NotificationMessages.cs`) | 3 messages | Done | Written by the API team, not reviewed | Written by the API team, not reviewed | |
 
-The group counts add up to 191 strings plus the 2 notification channel strings. Push text is not in the Android resources, so it is listed separately.
+The group counts add up to 209 strings plus the 2 notification channel strings. Push text is not in the Android resources, so it is listed separately.
 
 ### Terms to keep consistent
 
