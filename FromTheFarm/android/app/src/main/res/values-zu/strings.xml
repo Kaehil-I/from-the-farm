@@ -1,0 +1,249 @@
+<resources>
+    <string name="app_name">From The Farm</string>
+
+    <!-- Navigation -->
+    <string name="tab_home">Ikhaya</string>
+    <string name="tab_listings">Uhlu</string>
+    <string name="tab_demand">Isidingo</string>
+    <string name="tab_calendar">Ikhalenda</string>
+    <string name="tab_settings">Izilungiselelo</string>
+
+    <!-- Common actions -->
+    <string name="back">Emuva</string>
+    <string name="cancel">Khansela</string>
+    <string name="edit">Hlela</string>
+    <string name="remove">Susa</string>
+    <string name="refresh">Vuselela</string>
+    <string name="sign_out">Phuma</string>
+
+    <!-- Status labels (values come from the API) -->
+    <string name="status_suggested">Kuphakanyisiwe</string>
+    <string name="status_confirmed">Kuqinisekisiwe</string>
+    <string name="status_completed">Kuqediwe</string>
+    <string name="status_matched">Kufanisiwe</string>
+    <string name="status_open">Kuvuliwe</string>
+    <string name="status_active">Kuyasebenza</string>
+    <string name="status_expired">Kuphelelwe yisikhathi</string>
+    <string name="status_deleted">Kususiwe</string>
+
+    <!-- Locked screen -->
+    <string name="locked_title">I-From The Farm ikhiyiwe</string>
+    <string name="locked_body">Vula iseshini yakho egciniwe ye-Google ngesigxivizo somunwe noma ukubonwa kobuso okusekelwayo.</string>
+    <string name="unlock_biometrics">Vula nge-biometrics</string>
+    <string name="use_google_instead">Sebenzisa i-Google esikhundleni</string>
+
+    <!-- Sign-in and profile -->
+    <string name="app_heading">Evela epulazini</string>
+    <string name="google_signin_succeeded">Ukungena nge-Google kuphumelele.</string>
+    <string name="profile_load_failed">Iphrofayela yakho yepulazi ayikalayishwa. Zama futhi uma isevisi iyatholakala.</string>
+    <string name="retry_profile">Zama ukulayisha iphrofayela futhi</string>
+    <string name="tagline">Xhumana. Lima. Thengisa.</string>
+    <string name="signin_prompt">Ngena noma udale i-akhawunti yakho nge-Google ukuze uxhumane nabalimi nabathengi basendaweni.</string>
+    <string name="continue_google">Qhubeka nge-Google</string>
+    <string name="retry_saved_session">Zama iseshini egciniwe futhi</string>
+
+    <!-- Biometrics -->
+    <string name="enable_biometric_unlock">Nika amandla ukuvula nge-biometrics</string>
+    <string name="enable_biometric_device">Nika amandla ukuvula nge-biometrics kule divayisi</string>
+    <string name="turn_off_biometric">Vala ukuvula nge-biometrics</string>
+    <string name="lock_app">Khiya i-app</string>
+    <string name="device_security">Ukuphepha kwedivayisi</string>
+    <string name="biometric_note">Ukuvula nge-biometrics kubhaliswe kule divayisi kuphela, ngakho akulandeli i-akhawunti yakho kwenye ifoni.</string>
+
+    <!-- Records -->
+    <string name="record_unavailable">Irekhodi alitholakali. Buyela kumarekhodi akho bese uvuselela.</string>
+    <string name="remove_title">Susa leli rekhodi?</string>
+    <string name="remove_text">Ngeke lisabonakala kumarekhodi akho asebenzayo.</string>
+
+    <!-- Match details -->
+    <string name="back_to_matches">Buyela ekufaniseni</string>
+    <string name="match_details">Imininingwane yokufaniswa</string>
+    <string name="fit_status">%1$d%% ukufana · %2$s</string>
+    <string name="contact_name_unavailable">Igama loxhumana naye alitholakali</string>
+    <string name="no_phone_shared">Alukho unombolo yocingo olwabiwe.</string>
+    <string name="contact_after_confirm">Ulwazi lokuxhumana lwabiwa ngemuva kokuqinisekiswa.</string>
+    <string name="confirm_match">Qinisekisa ukufaniswa</string>
+    <string name="mark_completed">Maka ukushintshana kuqediwe</string>
+    <string name="thumbs_up">Isithupha phezulu</string>
+    <string name="thumbs_down">Isithupha phansi</string>
+    <string name="complete_title">Qeda lokhu kushintshana?</string>
+    <string name="complete_text">Qinisekisa ukuthi ukushintshana kwesivuno sekwenzekile. Ungasinikeza isilinganiso ngemuva kwalokho.</string>
+    <string name="complete_exchange">Qeda ukushintshana</string>
+    <string name="already_rated">Usulinganise lokhu kushintshana.</string>
+    <string name="refresh_details">Vuselela imininingwane</string>
+
+    <!-- Home -->
+    <string name="home_title_farmer">Ukufaniswa kwakho</string>
+    <string name="home_title_buyer">Imikhiqizo ehambisana nezidingo zakho</string>
+    <string name="home_sub_farmer">Kulandelelwe ngesivuno, ibanga, inani nesikhathi sokuvuna.</string>
+    <string name="home_sub_buyer">Imikhiqizo ehambisana nesidingo esivulekile ivela kuqala, kungakhathaliseki usayizi wezinhlamvu.</string>
+    <string name="no_matches_farmer">Akukho ukufaniswa okwamanje. Engeza uhlu bese uvuselela.</string>
+    <string name="no_recommendations">Akukho mikhiqizo etholakalayo okwamanje ehambisana negama lesivuno sesidingo esivulekile.</string>
+    <string name="other_products_within">Eminye imikhiqizo engaphakathi kwama-%1$s km</string>
+    <string name="create_open_demand_hint">Dala isidingo esivulekile ukuze usebenzise indawo yaso ekutholeni imikhiqizo eseduze.</string>
+    <string name="no_nearby">Ayikho eminye imikhiqizo etholakala ebangeni olilungisile.</string>
+    <string name="active_matches">Ukufaniswa kwakho okusebenzayo</string>
+    <string name="needed_by">Kudingeka ngo-%1$s</string>
+    <string name="harvest_label">Isivuno: %1$s</string>
+    <string name="view_match">Buka ukufaniswa</string>
+
+    <!-- Listings and demands -->
+    <string name="listings_farmer">Uhlu lwami</string>
+    <string name="listings_buyer">Izicelo zami zezidingo</string>
+    <string name="add_listing">Engeza uhlu</string>
+    <string name="post_demand">Thumela isidingo</string>
+    <string name="no_active_listings">Awunazo izinhlu ezisebenzayo.</string>
+    <string name="no_open_demands">Awunazo izicelo zezidingo ezivulekile.</string>
+    <string name="available_produce">Isivuno esitholakalayo</string>
+    <string name="find_nearby">Thola isivuno esiseduze</string>
+    <string name="nearby_results">Imiphumela eseduze</string>
+    <string name="no_nearby_results">Azikho izinhlu zesivuno ezisebenzayo ezitholwe zalesi sivuno nale ndawo. Zama ibanga elikhulu noma esinye isivuno.</string>
+    <string name="available_qty">Kuyatholakala: %1$s %2$s</string>
+    <string name="harvest_date">Usuku lokuvuna: %1$s</string>
+    <string name="km_from_demand">%1$s km ukusuka endaweni yesidingo sakho</string>
+    <string name="km_away">%1$s km ukude</string>
+    <string name="matches_request">Ihambisana nesicelo sakho se-%1$s %2$s ngo-%3$s</string>
+
+    <!-- Calendar -->
+    <string name="harvest_calendar">Ikhalenda yokuvuna</string>
+    <string name="calendar_hint">Khetha usuku ukuze ubone isivuno esitholakalayo ngalolo suku.</string>
+    <string name="select_date">Khetha usuku ekhalendeni.</string>
+    <string name="no_produce_date">Alukho isivuno esihlelelwe lolu suku.</string>
+
+    <!-- Forms: listings, demands, profile -->
+    <string name="title_create_demand">Dala isicelo sesidingo</string>
+    <string name="title_edit_demand">Hlela isicelo sesidingo</string>
+    <string name="title_create_listing">Dala uhlu</string>
+    <string name="title_edit_listing">Hlela uhlu</string>
+    <string name="field_crop_type">Uhlobo lwesivuno</string>
+    <string name="field_crop_blank">Uhlobo lwesivuno (shiya ngenalutho kwabo bonke)</string>
+    <string name="field_quantity">Inani</string>
+    <string name="field_unit">Iyunithi (isb. kg)</string>
+    <string name="field_deadline">Usuku olugcina (YYYY-MM-DD)</string>
+    <string name="field_harvest_date">Usuku lokuvuna (YYYY-MM-DD)</string>
+    <string name="choose_date">Khetha usuku</string>
+    <string name="use_date">Sebenzisa usuku</string>
+    <string name="saving">Iyagcina…</string>
+    <string name="save">Gcina</string>
+    <string name="search_within">Sesha phakathi kwama-%1$d km. Shintsha ibanga Ezilungiselelweni.</string>
+    <string name="nearby_invalid_coords">Faka i-latitude ne-longitude esebenzayo yendawo yokusesha.</string>
+
+    <!-- Photos -->
+    <string name="photo_open_error">Ayikwazanga ukuvula leli foto. Khetha isithombe esincane se-JPEG noma se-PNG.</string>
+    <string name="photo_preparing">Ilungisa ifoto…</string>
+    <string name="choose_photo">Khetha ifoto yohlu</string>
+    <string name="discard_photo">Lahla ifoto ekhethiwe</string>
+    <string name="photo_reselect">Khetha ifoto yakho futhi ngaphambi kokugcina.</string>
+    <string name="listing_photo">Ifoto yohlu</string>
+    <string name="photo_loading">Ifoto iyalayisha noma ayitholakali</string>
+
+    <!-- Location -->
+    <string name="location_title">Indawo</string>
+    <string name="location_hint">Sebenzisa indawo yedivayisi yakho ukuze kufaniswe kahle okuseduze.</string>
+    <string name="use_my_location">Sebenzisa indawo yami yamanje</string>
+    <string name="finding_location">Iyatholakala indawo…</string>
+    <string name="selected_location">Indawo ekhethiwe: %1$s, %2$s</string>
+    <string name="location_selected">Indawo yamanje ikhethiwe.</string>
+    <string name="location_unknown_enable">Ayikwazanga ukuthola indawo yakho. Vula Indawo kuzilungiselelo ze-Android noma uyifake ngesandla.</string>
+    <string name="location_unknown_check">Ayikwazanga ukuthola indawo yakho. Hlola Indawo kuzilungiselelo ze-Android noma uyifake ngesandla.</string>
+    <string name="location_permission_denied">Imvume yendawo ayinikeziwe. Ungafaka izixhumanisi ngesandla.</string>
+    <string name="hide_manual">Fihla izixhumanisi zesandla</string>
+    <string name="enter_manual">Faka izixhumanisi ngesandla</string>
+    <string name="latitude">I-latitude</string>
+    <string name="longitude">I-longitude</string>
+
+    <!-- Profile -->
+    <string name="role_farmer">Umlimi</string>
+    <string name="role_buyer">Umthengi</string>
+    <string name="profile_setup">Misa iphrofayela yakho</string>
+    <string name="choose_start">Khetha ukuthi ufuna ukuqala kanjani</string>
+    <string name="active_mode">Imodi esebenzayo</string>
+    <string name="mode_switch_note">Shintsha izimodi ngaphandle kokuphuma. Izinhlu zakho nezicelo zezidingo ziyaqhubeka zixhumene nale akhawunti.</string>
+    <string name="preferred_language">Ulimi oluthandwayo</string>
+    <string name="search_radius">Ibanga lokusesha: %1$d km</string>
+    <string name="field_phone">Inombolo yocingo (ayiphoqelekile)</string>
+    <string name="phone_shared_note">Inombolo yakho yocingo yabiwa nabafaniswe nabo abaqinisekisiwe.</string>
+    <string name="notification_preference">Gcina okuthandayo kwezaziso</string>
+    <string name="phone_invalid">Faka inombolo yocingo esebenzayo noma uyishiye ingenalutho.</string>
+    <string name="continue_label">Qhubeka</string>
+    <string name="switch_to_role">Yenza i-%1$s</string>
+    <string name="save_preferences">Gcina okuthandayo</string>
+
+    <!-- Biometric prompts and errors -->
+    <string name="biometric_prompt_title">Vula i-From The Farm</string>
+    <string name="biometric_prompt_subtitle">Qinisekisa ubuwena kule divayisi</string>
+    <string name="biometric_cancelled">Ukuqinisekiswa nge-biometrics kukhanseliwe.</string>
+    <string name="biometric_unavailable_try_google">Ukuqinisekiswa nge-biometrics akutholakali. Zama ukungena nge-Google noma ubheke izilungiselelo zedivayisi yakho.</string>
+    <string name="biometric_not_recognised">Isigxivizo somunwe noma ubuso akubonwanga. Zama futhi.</string>
+    <string name="biometric_none_enrolled">Qala ngokungeza isigxivizo somunwe noma ukuvula ngobuso okusekelwayo kuzilungiselelo ze-Android.</string>
+    <string name="biometric_no_hardware">Le divayisi ayinawo amahadiwe e-biometrics asekelwayo. Ungasebenzisa ukungena nge-Google.</string>
+    <string name="biometric_hw_unavailable">Ihadiwe ye-biometrics ayitholakali okwesikhashana. Zama futhi noma usebenzise ukungena nge-Google.</string>
+    <string name="biometric_unavailable_device">Ukuqinisekiswa nge-biometrics akutholakali kule divayisi. Ungasebenzisa ukungena nge-Google.</string>
+
+    <!-- Messages shown after actions and errors -->
+    <string name="signin_cancelled">Ukungena kukhanseliwe. Ungazama futhi lapho usukulungele.</string>
+    <string name="err_session_expired">Iseshini yakho iphelelwe yisikhathi noma yenqatshiwe. Sicela ungene futhi.</string>
+    <string name="err_forbidden">Awunamvume yalesi senzo.</string>
+    <string name="err_not_found">Leli rekhodi alisatholakali. Vuselela bese uzama futhi.</string>
+    <string name="err_conflict">Lesi senzo sesivele sirekhodiwe. Vuselela ukuze ubheke isimo salo.</string>
+    <string name="err_service_unavailable">Isevisi yepulazi ayitholakali. Sicela uzame futhi.</string>
+    <string name="err_rejected">Isevisi yenqabe isicelo (%1$d). Hlola okufakile.</string>
+    <string name="err_network">Ayikwazi ukufinyelela isevisi yepulazi. I-Render kungenzeka iyavuka; linda isikhashana, hlola uxhumo lwakho bese uzama futhi.</string>
+    <string name="err_config_incomplete">Ukulungiselelwa akuphelele.</string>
+    <string name="err_generic">Isenzo asikwazanga ukuqedwa. Sicela uzame futhi.</string>
+    <string name="err_sign_in_first">Ngena nge-Google kuqala.</string>
+    <string name="err_sign_in_again">Sicela ungene futhi.</string>
+    <string name="err_no_credential">I-Google ayibuyisanga ikhredenshali esekelwayo.</string>
+    <string name="err_refresh_before_confirm">Vuselela lokhu kufaniswa ngaphambi kokukuqinisekisa.</string>
+    <string name="err_only_confirmed_complete">Ukushintshana okuqinisekisiwe kuphela okungaqedwa.</string>
+    <string name="err_only_completed_rate">Ukufaniswa okuqediwe kuphela okungalinganiswa.</string>
+    <string name="err_already_rated">Usulinganise lokhu kufaniswa.</string>
+    <string name="saved_offline">Kugcinwe kule foni. Kuzolayishwa ngokuzenzakalelayo uma usuku-inthanethi futhi.</string>
+    <string name="sign_in_again_upload">Ngena futhi ukuze ulayishe amarekhodi agcinwe kule foni.</string>
+    <string name="uploaded_one_record">Irekhodi elilodwa elagcinwa ungekho ku-inthanethi selilayishiwe.</string>
+    <string name="uploaded_records">Amarekhodi angu-%1$d agcinwe ungekho ku-inthanethi alayishiwe.</string>
+    <string name="biometric_enabled_msg">Ukuvula nge-biometrics kunikezwe amandla kule divayisi.</string>
+    <string name="biometric_disabled_msg">Ukuvula nge-biometrics kuvaliwe kule divayisi.</string>
+    <string name="device_unlocked">Idivayisi ivuliwe.</string>
+    <string name="preferences_saved">Okuthandayo kugcinwe.</string>
+    <string name="refresh_failed">Ayikwazanga ukuvuselela %1$s. Idatha elayishwe ngaphambilini kungenzeka isidlulelwe yisikhathi. Zama futhi ngokuthi Vuselela.</string>
+    <string name="what_listings">izinhlu</string>
+    <string name="what_demands">izicelo zezidingo</string>
+    <string name="what_matches">ukufaniswa</string>
+    <string name="no_produce_found">Akukho sivuno esitholwe phakathi kwama-%1$d km.</string>
+    <string name="found_one_product">Kutholwe umkhiqizo owodwa phakathi kwama-%1$d km.</string>
+    <string name="found_products">Kutholwe imikhiqizo engu-%1$d phakathi kwama-%2$d km.</string>
+    <string name="demand_posted">Isidingo sithunyelwe. Isivuno esifanele sesilungile ku-Ikhaya.</string>
+    <string name="demand_updated">Isidingo sibuyekeziwe. Isivuno esifanele sivuselelwe.</string>
+    <string name="exchange_completed">Ukushintshana kumakwe kuqediwe.</string>
+    <string name="rating_submitted">Isilinganiso sithunyelwe.</string>
+
+    <!-- Form validation -->
+    <string name="val_crop">Faka igama lesivuno (izinhlamvu eziyi-1–100).</string>
+    <string name="val_quantity">Faka inani eliyinombolo ephozithivu kuze kufike ku-1,000,000,000.</string>
+    <string name="val_unit">Faka iyunithi, njenge-kg noma amakhreyithi.</string>
+    <string name="val_date">Sebenzisa usuku olusebenzayo ngefomethi ye-YYYY-MM-DD.</string>
+    <string name="val_deadline_past">Usuku olugcina alukwazi ukuba esikhathini esidlule.</string>
+    <string name="val_latitude">I-latitude kumele ibe phakathi kuka-(-90) no-90.</string>
+    <string name="val_longitude">I-longitude kumele ibe phakathi kuka-(-180) no-180.</string>
+
+    <!-- Offline sync -->
+    <string name="pending_heading">Kugcinwe kule foni</string>
+    <string name="discard_title">Lahla irekhodi eligciniwe?</string>
+    <string name="discard_text">%1$s alilayishwanga. Ukulilahla kususa ikhophi eyodwa egciniwe kule foni.</string>
+    <string name="this_record">Leli rekhodi</string>
+    <string name="discard">Lahla</string>
+    <string name="keep">Yigcine</string>
+    <string name="retry">Zama futhi</string>
+    <string name="sync_offline_msg">Awuxhunyiwe ku-inthanethi. Izinhlu ezintsha nezidingo zizohlala kule foni kuze kubuye uxhumo.</string>
+    <string name="sync_uploading">Kulayishwa amarekhodi agciniwe…</string>
+    <string name="sync_failed_one">Irekhodi elilodwa eligciniwe lidinga ukunakwa.</string>
+    <string name="sync_failed_many">Amarekhodi angu-%1$d agciniwe adinga ukunakwa.</string>
+    <string name="sync_pending_one">Irekhodi elilodwa lilindele ukulayishwa.</string>
+    <string name="sync_pending_many">Amarekhodi angu-%1$d alindele ukulayishwa.</string>
+    <string name="sync_title_offline">Imodi engekho ku-inthanethi</string>
+    <string name="sync_title">Isimo sokuvumelanisa</string>
+    <string name="sync_now">Vumelanisa manje</string>
+    <string name="upload_failed">Ukulayisha kuhlulekile</string>
+    <string name="waiting_upload">Kulindele ukulayishwa</string>
+</resources>

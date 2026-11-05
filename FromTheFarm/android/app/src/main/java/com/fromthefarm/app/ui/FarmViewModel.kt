@@ -2,11 +2,13 @@ package com.fromthefarm.app.ui
 
 import android.content.Context
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.viewModelScope
+import com.fromthefarm.app.R
 import com.fromthefarm.app.data.*
 import com.fromthefarm.app.data.offline.*
 import com.google.gson.Gson
@@ -21,7 +23,7 @@ import java.util.UUID
 import java.util.Locale
 import androidx.credentials.exceptions.GetCredentialCancellationException
 
-data class FarmState(val busy: Boolean = false, val error: String? = null, val message: String? = null,
+data class FarmState(val busy: Boolean = false, val error: UiText? = null, val message: UiText? = null,
     val firebaseSignedIn: Boolean = false,
     val biometricLocked: Boolean = false, val biometricEnabled: Boolean = false,
     val profile: Profile? = null, val listings: List<Listing> = emptyList(), val nearbyListings: List<Listing> = emptyList(), val demands: List<Demand> = emptyList(),
@@ -35,7 +37,7 @@ class FarmViewModel(private val repository: FarmDataSource,
         fun factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer { FarmViewModel(FarmRepository(context.applicationContext), OfflineSupport.forContext(context)) { Log.d("FarmState", it) } }
         }
-        private const val SAVED_OFFLINE = "Saved on this phone. It will upload automatically when you're back online."
+        private val SAVED_OFFLINE = UiText.Res(R.string.saved_offline)
     }
     private val mutable = MutableStateFlow(FarmState())
     val state = mutable.asStateFlow()
@@ -73,6 +75,10 @@ class FarmViewModel(private val repository: FarmDataSource,
         }
     }
 
+    private fun ensure(condition: Boolean, @StringRes message: Int) {
+        if (!condition) throw UserFacingException(UiText.Res(message))
+    }
+
     // Serialize user actions, retain form state on errors, and never log tokens or personal data.
     private fun action(allowLocked: Boolean = false, block: suspend () -> Unit) {
         if (mutable.value.busy || (mutable.value.biometricLocked && !allowLocked)) return
@@ -89,18 +95,20 @@ class FarmViewModel(private val repository: FarmDataSource,
                     catch (_: Exception) { log("Credential cleanup failed after session rejection") }
                 }
                 val message = when (e) {
-                    is GetCredentialCancellationException -> "Sign-in cancelled. You can try again when ready."
+                    is GetCredentialCancellationException -> UiText.Res(R.string.signin_cancelled)
                     is HttpException -> when (e.code()) {
-                        401 -> "Your session expired or was rejected. Please sign in again."
-                        403 -> "You do not have permission for this action."
-                        404 -> "This record is no longer available. Refresh and try again."
-                        409 -> "This action was already recorded. Refresh to check its state."
-                        in 500..599 -> "The farm service is unavailable. Please try again."
-                        else -> "The service rejected the request (${e.code()}). Check your inputs."
+                        401 -> UiText.Res(R.string.err_session_expired)
+                        403 -> UiText.Res(R.string.err_forbidden)
+                        404 -> UiText.Res(R.string.err_not_found)
+                        409 -> UiText.Res(R.string.err_conflict)
+                        in 500..599 -> UiText.Res(R.string.err_service_unavailable)
+                        else -> UiText.Res(R.string.err_rejected, listOf(e.code()))
                     }
-                    is IOException -> "Cannot reach the farm service. Render may be waking up; wait a moment, check your connection, and retry."
-                    is IllegalStateException -> e.message ?: "Configuration is incomplete."
-                    else -> "The action could not complete. Please try again."
+                    is IOException -> UiText.Res(R.string.err_network)
+                    is UserFacingException -> e.text
+                    // Developer-facing setup problems (missing Firebase or API configuration) stay as written.
+                    is IllegalStateException -> e.message?.let { UiText.Raw(it) } ?: UiText.Res(R.string.err_config_incomplete)
+                    else -> UiText.Res(R.string.err_generic)
                 }
                 mutable.value = mutable.value.copy(error = message)
             } finally { mutable.value = mutable.value.copy(busy = false) }
@@ -126,11 +134,11 @@ class FarmViewModel(private val repository: FarmDataSource,
         mutable.value = FarmState(busy = true, firebaseSignedIn = true, biometricEnabled = repository.biometricEnabled())
         establishSession()
     }
-    fun biometricError(message: String) { mutable.value = mutable.value.copy(error = message) }
+    fun biometricError(message: String) { mutable.value = mutable.value.copy(error = UiText.Raw(message)) }
     fun enableBiometrics() {
         if (!repository.hasSession() || mutable.value.busy || mutable.value.biometricLocked) return
         repository.setBiometricEnabled(true)
-        mutable.value = mutable.value.copy(biometricEnabled = true, error = null, message = "Biometric unlock enabled on this device.")
+        mutable.value = mutable.value.copy(biometricEnabled = true, error = null, message = UiText.Res(R.string.biometric_enabled_msg))
     }
     fun lock() {
         if (mutable.value.biometricEnabled && repository.hasSession())
@@ -139,11 +147,11 @@ class FarmViewModel(private val repository: FarmDataSource,
     fun disableBiometrics() {
         if (mutable.value.busy || mutable.value.biometricLocked || !repository.hasSession()) return
         repository.setBiometricEnabled(false)
-        mutable.value = mutable.value.copy(biometricEnabled = false, message = "Biometric unlock disabled on this device.")
+        mutable.value = mutable.value.copy(biometricEnabled = false, message = UiText.Res(R.string.biometric_disabled_msg))
     }
     fun unlockWithBiometrics() {
         if (!repository.hasSession() || !mutable.value.biometricLocked) return
-        mutable.value = mutable.value.copy(biometricLocked = false, error = null, message = "Device unlocked.")
+        mutable.value = mutable.value.copy(biometricLocked = false, error = null, message = UiText.Res(R.string.device_unlocked))
         if (mutable.value.profile == null) resumeSession()
     }
     fun logout() = action(allowLocked = true) {
@@ -158,34 +166,34 @@ class FarmViewModel(private val repository: FarmDataSource,
         // value the form was first rendered with and drifts out of date silently.
         val write = body.copy(biometricLockEnabled = repository.biometricEnabled())
         val profile = repository.api.profile(repository.token(), write)
-        mutable.value = mutable.value.copy(profile = profile, loaded = false, message = "Preferences saved.")
+        mutable.value = mutable.value.copy(profile = profile, loaded = false, message = UiText.Res(R.string.preferences_saved))
     }
     private suspend fun load() {
         val farmer = mutable.value.profile?.role == "Farmer"
-        val failures = mutableListOf<String>()
+        val failures = mutableListOf<UiText>()
         // A teammate's unavailable endpoint must not prevent unrelated screens from loading.
-        suspend fun <T> fetch(label: String, previous: T, block: suspend () -> T): T = try { block() }
+        suspend fun <T> fetch(label: String, what: Int, previous: T, block: suspend () -> T): T = try { block() }
         catch (e: CancellationException) { throw e }
         catch (e: Exception) {
             if (e is HttpException && e.code() == 401) throw e
             log("$label refresh failed: ${e.javaClass.simpleName}")
-            failures.add(label)
+            failures.add(UiText.Res(what))
             previous
         }
         val owner = mutable.value.profile?.userId
         // Nothing is held in memory after a restart, so the saved copy is what someone without a connection sees.
         val savedListings = mutable.value.listings.ifEmpty { owner?.let { offline.store.cachedListings(it) }.orEmpty() }
         val savedDemands = mutable.value.demands.ifEmpty { owner?.let { offline.store.cachedDemands(it) }.orEmpty() }
-        val listings = fetch("listings", savedListings) {
+        val listings = fetch("listings", R.string.what_listings, savedListings) {
             repository.api.listings(repository.token(), farmer).also { fresh -> owner?.let { offline.store.cacheListings(it, fresh) } }
         }
-        val demands = fetch("demand requests", savedDemands) {
+        val demands = fetch("demand requests", R.string.what_demands, savedDemands) {
             repository.api.demands(repository.token()).also { fresh -> owner?.let { offline.store.cacheDemands(it, fresh) } }
         }
-        val matches = fetch("matches", mutable.value.matches) { repository.api.matches(repository.token()).sortedByDescending { it.score } }
+        val matches = fetch("matches", R.string.what_matches, mutable.value.matches) { repository.api.matches(repository.token()).sortedByDescending { it.score } }
         mutable.value = mutable.value.copy(listings = listings, nearbyListings = emptyList(), demands = demands, matches = matches,
             loaded = true, nearbySearchPerformed = false,
-            error = failures.takeIf { it.isNotEmpty() }?.let { "Could not refresh ${it.joinToString()}. Previously loaded data may be out of date. Retry with Refresh." })
+            error = failures.takeIf { it.isNotEmpty() }?.let { UiText.Res(R.string.refresh_failed, listOf(UiText.Joined(it))) })
     }
     fun refresh() = action { load() }
     fun browse(crop: String?, radius: Int, location: Location) = action {
@@ -195,7 +203,11 @@ class FarmViewModel(private val repository: FarmDataSource,
         val nearby = repository.api.browseListings(repository.token(), null, radius, location.latitude, location.longitude)
         val listings = crop?.let { wanted -> nearby.filter { it.cropType.equals(wanted, ignoreCase = true) } } ?: nearby
         mutable.value = mutable.value.copy(nearbyListings = listings, nearbySearchPerformed = true,
-            message = if (listings.isEmpty()) "No produce found within $radius km." else "Found ${listings.size} product${if (listings.size == 1) "" else "s"} within $radius km.")
+            message = when (listings.size) {
+                0 -> UiText.Res(R.string.no_produce_found, listOf(radius))
+                1 -> UiText.Res(R.string.found_one_product, listOf(radius))
+                else -> UiText.Res(R.string.found_products, listOf(listings.size, radius))
+            })
     }
     // A new record gets its id on this phone before the first attempt. If the connection drops, the
     // record is queued under that same id and the API ignores a repeat, so it can only exist once.
@@ -220,8 +232,7 @@ class FarmViewModel(private val repository: FarmDataSource,
         else {
             mutable.value = mutable.value.copy(loaded = false)
             load()
-            mutable.value = mutable.value.copy(message = if (id == null)
-                "Demand posted. Relevant produce is ready on Home." else "Demand updated. Relevant produce has been refreshed.")
+            mutable.value = mutable.value.copy(message = UiText.Res(if (id == null) R.string.demand_posted else R.string.demand_updated))
         }
         done()
     }
@@ -260,10 +271,11 @@ class FarmViewModel(private val repository: FarmDataSource,
         try {
             val result = processor.drain(owner) { repository.token() }
             if (result.uploaded > 0) mutable.value = mutable.value.copy(loaded = false,
-                message = "Uploaded ${result.uploaded} record${if (result.uploaded == 1) "" else "s"} saved while offline.")
+                message = if (result.uploaded == 1) UiText.Res(R.string.uploaded_one_record)
+                    else UiText.Res(R.string.uploaded_records, listOf(result.uploaded)))
             when (result.outcome) {
                 DrainOutcome.RETRY_LATER -> offline.scheduler.schedule() // also covers the app being closed before it works
-                DrainOutcome.NEEDS_SIGN_IN -> mutable.value = mutable.value.copy(error = "Sign in again to upload the records saved on this phone.")
+                DrainOutcome.NEEDS_SIGN_IN -> mutable.value = mutable.value.copy(error = UiText.Res(R.string.sign_in_again_upload))
                 DrainOutcome.DONE -> Unit
             }
         } catch (e: CancellationException) { throw e }
@@ -305,23 +317,23 @@ class FarmViewModel(private val repository: FarmDataSource,
         action { mutable.value = mutable.value.copy(detail = repository.api.detail(repository.token(), id)) }
     }
     fun confirm(id: String) = action {
-        check(mutable.value.detail?.let { it.matchId == id && it.status == "Suggested" } == true) { "Refresh this match before confirming it." }
+        ensure(mutable.value.detail?.let { it.matchId == id && it.status == "Suggested" } == true, R.string.err_refresh_before_confirm)
         repository.api.confirm(repository.token(), id)
         mutable.value = mutable.value.copy(detail = mutable.value.detail?.copy(status = "Confirmed"), loaded = false)
         mutable.value = mutable.value.copy(detail = repository.api.detail(repository.token(), id), loaded = false)
     }
     fun complete(id: String) = action {
-        check(mutable.value.detail?.let { it.matchId == id && it.status == "Confirmed" } == true) { "Only confirmed exchanges can be completed." }
+        ensure(mutable.value.detail?.let { it.matchId == id && it.status == "Confirmed" } == true, R.string.err_only_confirmed_complete)
         repository.api.complete(repository.token(), id)
         // The write succeeded even if the following detail refresh fails.
         mutable.value = mutable.value.copy(detail = mutable.value.detail?.copy(status = "Completed"),
-            loaded = false, message = "Exchange marked completed.")
+            loaded = false, message = UiText.Res(R.string.exchange_completed))
         mutable.value = mutable.value.copy(detail = repository.api.detail(repository.token(), id))
     }
     fun rate(id: String, positive: Boolean) = action {
-        check(mutable.value.detail?.let { it.matchId == id && it.status == "Completed" } == true) { "Only completed matches can be rated." }
-        check(id !in mutable.value.ratedMatches) { "You have already rated this match." }
+        ensure(mutable.value.detail?.let { it.matchId == id && it.status == "Completed" } == true, R.string.err_only_completed_rate)
+        ensure(id !in mutable.value.ratedMatches, R.string.err_already_rated)
         repository.api.rate(repository.token(), id, RatingWrite(positive))
-        mutable.value = mutable.value.copy(message = "Rating submitted.", ratedMatches = mutable.value.ratedMatches + id)
+        mutable.value = mutable.value.copy(message = UiText.Res(R.string.rating_submitted), ratedMatches = mutable.value.ratedMatches + id)
     }
 }

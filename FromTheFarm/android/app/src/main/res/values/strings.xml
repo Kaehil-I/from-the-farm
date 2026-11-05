@@ -1,3 +1,249 @@
 <resources>
     <string name="app_name">From The Farm</string>
+
+    <!-- Navigation -->
+    <string name="tab_home">Home</string>
+    <string name="tab_listings">Listings</string>
+    <string name="tab_demand">Demand</string>
+    <string name="tab_calendar">Calendar</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Common actions -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="edit">Edit</string>
+    <string name="remove">Remove</string>
+    <string name="refresh">Refresh</string>
+    <string name="sign_out">Sign out</string>
+
+    <!-- Status labels (values come from the API) -->
+    <string name="status_suggested">Suggested</string>
+    <string name="status_confirmed">Confirmed</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_matched">Matched</string>
+    <string name="status_open">Open</string>
+    <string name="status_active">Active</string>
+    <string name="status_expired">Expired</string>
+    <string name="status_deleted">Deleted</string>
+
+    <!-- Locked screen -->
+    <string name="locked_title">From The Farm is locked</string>
+    <string name="locked_body">Unlock your saved Google session with your fingerprint or supported face recognition.</string>
+    <string name="unlock_biometrics">Unlock with biometrics</string>
+    <string name="use_google_instead">Use Google instead</string>
+
+    <!-- Sign-in and profile -->
+    <string name="app_heading">From the farm</string>
+    <string name="google_signin_succeeded">Google sign-in succeeded.</string>
+    <string name="profile_load_failed">Your farm profile could not be loaded yet. Retry when the service is available.</string>
+    <string name="retry_profile">Retry loading profile</string>
+    <string name="tagline">Connect. Grow. Sell.</string>
+    <string name="signin_prompt">Sign in or create your account with Google to connect with local farmers and buyers.</string>
+    <string name="continue_google">Continue with Google</string>
+    <string name="retry_saved_session">Retry saved session</string>
+
+    <!-- Biometrics -->
+    <string name="enable_biometric_unlock">Enable biometric unlock</string>
+    <string name="enable_biometric_device">Enable biometric unlock on this device</string>
+    <string name="turn_off_biometric">Turn off biometric unlock</string>
+    <string name="lock_app">Lock app</string>
+    <string name="device_security">Device security</string>
+    <string name="biometric_note">Biometric unlock is enrolled on this device only, so it does not follow your account to another phone.</string>
+
+    <!-- Records -->
+    <string name="record_unavailable">The record is not available. Return to your records and refresh.</string>
+    <string name="remove_title">Remove this record?</string>
+    <string name="remove_text">It will no longer appear in your active records.</string>
+
+    <!-- Match details -->
+    <string name="back_to_matches">Back to matches</string>
+    <string name="match_details">Match details</string>
+    <string name="fit_status">%1$d%% fit · %2$s</string>
+    <string name="contact_name_unavailable">Contact name unavailable</string>
+    <string name="no_phone_shared">No phone number has been shared.</string>
+    <string name="contact_after_confirm">Contact information is shared after confirmation.</string>
+    <string name="confirm_match">Confirm match</string>
+    <string name="mark_completed">Mark exchange completed</string>
+    <string name="thumbs_up">Thumbs up</string>
+    <string name="thumbs_down">Thumbs down</string>
+    <string name="complete_title">Complete this exchange?</string>
+    <string name="complete_text">Confirm that the produce exchange has taken place. You can rate it afterwards.</string>
+    <string name="complete_exchange">Complete exchange</string>
+    <string name="already_rated">You have rated this exchange.</string>
+    <string name="refresh_details">Refresh details</string>
+
+    <!-- Home -->
+    <string name="home_title_farmer">Your matches</string>
+    <string name="home_title_buyer">Products matching your demands</string>
+    <string name="home_sub_farmer">Ranked by crop, distance, quantity and harvest timing.</string>
+    <string name="home_sub_buyer">Products matching an open demand appear first, regardless of capitalization.</string>
+    <string name="no_matches_farmer">No matches yet. Add a listing, then refresh.</string>
+    <string name="no_recommendations">No available products currently match the crop name of an open demand.</string>
+    <string name="other_products_within">Other products within %1$s km</string>
+    <string name="create_open_demand_hint">Create an open demand to use its location for nearby products.</string>
+    <string name="no_nearby">No other products are available within your configured range.</string>
+    <string name="active_matches">Your active matches</string>
+    <string name="needed_by">Needed by: %1$s</string>
+    <string name="harvest_label">Harvest: %1$s</string>
+    <string name="view_match">View match</string>
+
+    <!-- Listings and demands -->
+    <string name="listings_farmer">My listings</string>
+    <string name="listings_buyer">My demand requests</string>
+    <string name="add_listing">Add listing</string>
+    <string name="post_demand">Post demand</string>
+    <string name="no_active_listings">You have no active listings.</string>
+    <string name="no_open_demands">You have no open demand requests.</string>
+    <string name="available_produce">Available produce</string>
+    <string name="find_nearby">Find nearby produce</string>
+    <string name="nearby_results">Nearby results</string>
+    <string name="no_nearby_results">No active produce listings were found for this crop and location. Try a larger radius or another crop.</string>
+    <string name="available_qty">Available: %1$s %2$s</string>
+    <string name="harvest_date">Harvest date: %1$s</string>
+    <string name="km_from_demand">%1$s km from your demand location</string>
+    <string name="km_away">%1$s km away</string>
+    <string name="matches_request">Matches your request for %1$s %2$s by %3$s</string>
+
+    <!-- Calendar -->
+    <string name="harvest_calendar">Harvest calendar</string>
+    <string name="calendar_hint">Select a date to see produce available on that day.</string>
+    <string name="select_date">Select a date on the calendar.</string>
+    <string name="no_produce_date">No produce is scheduled for this date.</string>
+
+    <!-- Forms: listings, demands, profile -->
+    <string name="title_create_demand">Create demand request</string>
+    <string name="title_edit_demand">Edit demand request</string>
+    <string name="title_create_listing">Create listing</string>
+    <string name="title_edit_listing">Edit listing</string>
+    <string name="field_crop_type">Crop type</string>
+    <string name="field_crop_blank">Crop type (blank for all)</string>
+    <string name="field_quantity">Quantity</string>
+    <string name="field_unit">Unit (e.g. kg)</string>
+    <string name="field_deadline">Deadline (YYYY-MM-DD)</string>
+    <string name="field_harvest_date">Harvest date (YYYY-MM-DD)</string>
+    <string name="choose_date">Choose date</string>
+    <string name="use_date">Use date</string>
+    <string name="saving">Saving…</string>
+    <string name="save">Save</string>
+    <string name="search_within">Search within %1$d km. Change the radius in Settings.</string>
+    <string name="nearby_invalid_coords">Enter valid latitude and longitude for the search location.</string>
+
+    <!-- Photos -->
+    <string name="photo_open_error">Could not open this photo. Choose a smaller JPEG or PNG image.</string>
+    <string name="photo_preparing">Preparing photo…</string>
+    <string name="choose_photo">Choose listing photo</string>
+    <string name="discard_photo">Discard selected photo</string>
+    <string name="photo_reselect">Select your photo again before saving.</string>
+    <string name="listing_photo">Listing photo</string>
+    <string name="photo_loading">Photo loading or unavailable</string>
+
+    <!-- Location -->
+    <string name="location_title">Location</string>
+    <string name="location_hint">Use your device location for accurate nearby matching.</string>
+    <string name="use_my_location">Use my current location</string>
+    <string name="finding_location">Finding location…</string>
+    <string name="selected_location">Selected location: %1$s, %2$s</string>
+    <string name="location_selected">Current location selected.</string>
+    <string name="location_unknown_enable">Could not determine your location. Turn on Location in Android Settings or enter it manually.</string>
+    <string name="location_unknown_check">Could not determine your location. Check Location in Android Settings or enter it manually.</string>
+    <string name="location_permission_denied">Location permission was not granted. You can enter the coordinates manually.</string>
+    <string name="hide_manual">Hide manual coordinates</string>
+    <string name="enter_manual">Enter coordinates manually</string>
+    <string name="latitude">Latitude</string>
+    <string name="longitude">Longitude</string>
+
+    <!-- Profile -->
+    <string name="role_farmer">Farmer</string>
+    <string name="role_buyer">Buyer</string>
+    <string name="profile_setup">Set up your profile</string>
+    <string name="choose_start">Choose how you want to start</string>
+    <string name="active_mode">Active mode</string>
+    <string name="mode_switch_note">Switch modes without signing out. Your listings and demand requests stay connected to this account.</string>
+    <string name="preferred_language">Preferred language</string>
+    <string name="search_radius">Search radius: %1$d km</string>
+    <string name="field_phone">Phone number (optional)</string>
+    <string name="phone_shared_note">Your phone number is shared with confirmed matches.</string>
+    <string name="notification_preference">Save notification preference</string>
+    <string name="phone_invalid">Enter a valid phone number or leave it blank.</string>
+    <string name="continue_label">Continue</string>
+    <string name="switch_to_role">Switch to %1$s</string>
+    <string name="save_preferences">Save preferences</string>
+
+    <!-- Biometric prompts and errors -->
+    <string name="biometric_prompt_title">Unlock From The Farm</string>
+    <string name="biometric_prompt_subtitle">Verify your identity on this device</string>
+    <string name="biometric_cancelled">Biometric authentication cancelled.</string>
+    <string name="biometric_unavailable_try_google">Biometric authentication unavailable. Try Google sign-in or check your device settings.</string>
+    <string name="biometric_not_recognised">Fingerprint or face not recognised. Try again.</string>
+    <string name="biometric_none_enrolled">Add a fingerprint or supported face unlock in Android Settings first.</string>
+    <string name="biometric_no_hardware">This device does not have supported biometric hardware. You can use Google sign-in.</string>
+    <string name="biometric_hw_unavailable">Biometric hardware is temporarily unavailable. Try again or use Google sign-in.</string>
+    <string name="biometric_unavailable_device">Biometric authentication is unavailable on this device. You can use Google sign-in.</string>
+
+    <!-- Messages shown after actions and errors -->
+    <string name="signin_cancelled">Sign-in cancelled. You can try again when ready.</string>
+    <string name="err_session_expired">Your session expired or was rejected. Please sign in again.</string>
+    <string name="err_forbidden">You do not have permission for this action.</string>
+    <string name="err_not_found">This record is no longer available. Refresh and try again.</string>
+    <string name="err_conflict">This action was already recorded. Refresh to check its state.</string>
+    <string name="err_service_unavailable">The farm service is unavailable. Please try again.</string>
+    <string name="err_rejected">The service rejected the request (%1$d). Check your inputs.</string>
+    <string name="err_network">Cannot reach the farm service. Render may be waking up; wait a moment, check your connection, and retry.</string>
+    <string name="err_config_incomplete">Configuration is incomplete.</string>
+    <string name="err_generic">The action could not complete. Please try again.</string>
+    <string name="err_sign_in_first">Sign in with Google first.</string>
+    <string name="err_sign_in_again">Please sign in again.</string>
+    <string name="err_no_credential">Google did not return a supported credential.</string>
+    <string name="err_refresh_before_confirm">Refresh this match before confirming it.</string>
+    <string name="err_only_confirmed_complete">Only confirmed exchanges can be completed.</string>
+    <string name="err_only_completed_rate">Only completed matches can be rated.</string>
+    <string name="err_already_rated">You have already rated this match.</string>
+    <string name="saved_offline">Saved on this phone. It will upload automatically when you\'re back online.</string>
+    <string name="sign_in_again_upload">Sign in again to upload the records saved on this phone.</string>
+    <string name="uploaded_one_record">Uploaded 1 record saved while offline.</string>
+    <string name="uploaded_records">Uploaded %1$d records saved while offline.</string>
+    <string name="biometric_enabled_msg">Biometric unlock enabled on this device.</string>
+    <string name="biometric_disabled_msg">Biometric unlock disabled on this device.</string>
+    <string name="device_unlocked">Device unlocked.</string>
+    <string name="preferences_saved">Preferences saved.</string>
+    <string name="refresh_failed">Could not refresh %1$s. Previously loaded data may be out of date. Retry with Refresh.</string>
+    <string name="what_listings">listings</string>
+    <string name="what_demands">demand requests</string>
+    <string name="what_matches">matches</string>
+    <string name="no_produce_found">No produce found within %1$d km.</string>
+    <string name="found_one_product">Found 1 product within %1$d km.</string>
+    <string name="found_products">Found %1$d products within %2$d km.</string>
+    <string name="demand_posted">Demand posted. Relevant produce is ready on Home.</string>
+    <string name="demand_updated">Demand updated. Relevant produce has been refreshed.</string>
+    <string name="exchange_completed">Exchange marked completed.</string>
+    <string name="rating_submitted">Rating submitted.</string>
+
+    <!-- Form validation -->
+    <string name="val_crop">Enter a crop name (1–100 characters).</string>
+    <string name="val_quantity">Enter a positive quantity up to 1,000,000,000.</string>
+    <string name="val_unit">Enter a unit, such as kg or crates.</string>
+    <string name="val_date">Use a valid date in YYYY-MM-DD format.</string>
+    <string name="val_deadline_past">The deadline cannot be in the past.</string>
+    <string name="val_latitude">Latitude must be between -90 and 90.</string>
+    <string name="val_longitude">Longitude must be between -180 and 180.</string>
+
+    <!-- Offline sync -->
+    <string name="pending_heading">Saved on this phone</string>
+    <string name="discard_title">Discard saved record?</string>
+    <string name="discard_text">%1$s has not been uploaded. Discarding it removes the only saved copy from this phone.</string>
+    <string name="this_record">This record</string>
+    <string name="discard">Discard</string>
+    <string name="keep">Keep</string>
+    <string name="retry">Retry</string>
+    <string name="sync_offline_msg">You\'re offline. New listings and demands will stay on this phone until the connection returns.</string>
+    <string name="sync_uploading">Uploading saved records…</string>
+    <string name="sync_failed_one">1 saved record needs attention.</string>
+    <string name="sync_failed_many">%1$d saved records need attention.</string>
+    <string name="sync_pending_one">1 record waiting to upload.</string>
+    <string name="sync_pending_many">%1$d records waiting to upload.</string>
+    <string name="sync_title_offline">Offline mode</string>
+    <string name="sync_title">Sync status</string>
+    <string name="sync_now">Sync now</string>
+    <string name="upload_failed">Upload failed</string>
+    <string name="waiting_upload">Waiting to upload</string>
 </resources>

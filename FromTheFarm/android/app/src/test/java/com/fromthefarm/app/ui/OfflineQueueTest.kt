@@ -1,5 +1,6 @@
 package com.fromthefarm.app.ui
 
+import com.fromthefarm.app.R
 import android.content.Context
 import com.fromthefarm.app.data.*
 import com.fromthefarm.app.data.offline.*
@@ -44,7 +45,7 @@ class OfflineQueueTest {
 
         assertEquals(1, closed)
         assertNull(vm.state.value.error)
-        assertTrue(vm.state.value.message!!.contains("Saved on this phone"))
+        assertEquals(UiText.Res(R.string.saved_offline), vm.state.value.message)
         assertEquals(1, vm.sync.value.pendingCount)
         assertTrue(vm.sync.value.offline)
         assertEquals(1, scheduler.scheduled)
@@ -61,7 +62,7 @@ class OfflineQueueTest {
         assertEquals(1, api.stored.size)
         assertEquals(0, vm.sync.value.pendingCount)
         assertFalse(vm.sync.value.offline)
-        assertTrue(vm.state.value.message!!.contains("Uploaded 1 record"))
+        assertEquals(UiText.Res(R.string.uploaded_one_record), vm.state.value.message)
         assertFalse("the lists reload to show the new record", vm.state.value.loaded)
     }
 

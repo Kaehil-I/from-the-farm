@@ -1,5 +1,6 @@
 package com.fromthefarm.app.ui
 
+import com.fromthefarm.app.R
 import android.content.Context
 import com.fromthefarm.app.data.*
 import kotlinx.coroutines.Dispatchers
@@ -51,7 +52,7 @@ class FarmViewModelTest {
         vm.refresh(); advanceUntilIdle()
         assertEquals(1, vm.state.value.listings.size)
         assertEquals(1, vm.state.value.demands.size)
-        assertTrue(vm.state.value.error!!.contains("matches"))
+        assertEquals(UiText.Res(R.string.refresh_failed, listOf(UiText.Joined(listOf(UiText.Res(R.string.what_matches))))), vm.state.value.error)
         assertTrue(vm.state.value.loaded)
     }
 
@@ -89,7 +90,7 @@ class FarmViewModelTest {
         assertTrue(vm.state.value.loaded)
         assertEquals(1, vm.state.value.matches.size)
         assertEquals("Tomatoes", vm.state.value.matches.single().counterpart.cropType)
-        assertTrue(vm.state.value.message!!.contains("Relevant produce"))
+        assertEquals(UiText.Res(R.string.demand_posted), vm.state.value.message)
     }
 
     @Test fun nearbySearchDoesNotReplaceProductsUsedByHomeAndCalendar() = runTest(dispatcher) {
