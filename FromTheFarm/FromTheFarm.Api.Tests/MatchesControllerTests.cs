@@ -516,16 +516,13 @@ public class MatchesControllerTests
         FakePushSender? push = null)
     {
         var userRepository = users ?? new FakeRepository<UserProfile>();
+        var matchRepository = matches ?? new FakeRepository<MatchDocument>();
+        var pushSender = push ?? new FakePushSender();
         return new MatchesController(
             userRepository,
-            listings ?? new FakeRepository<Listing>(),
-            demands ?? new FakeRepository<DemandRequest>(),
-            matches ?? new FakeRepository<MatchDocument>(),
-            new MatchingService(),
-            new NotificationService(
-                userRepository,
-                push ?? new FakePushSender(),
-                Microsoft.Extensions.Logging.Abstractions.NullLogger<NotificationService>.Instance))
+            matchRepository,
+            Matching.Service(listings, demands, matchRepository, userRepository, pushSender),
+            Matching.Notifications(userRepository, pushSender))
         {
             ControllerContext = SignedInAs.User(uid)
         };

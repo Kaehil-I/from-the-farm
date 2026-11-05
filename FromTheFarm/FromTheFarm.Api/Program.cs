@@ -91,6 +91,7 @@ else
 }
 
 builder.Services.AddSingleton<NotificationService>();
+builder.Services.AddSingleton<MatchGenerationService>();
 
 // ---- Firebase-issued ID token validation ----
 // Every request (aside from POST /auth/session's first-contact case) carries

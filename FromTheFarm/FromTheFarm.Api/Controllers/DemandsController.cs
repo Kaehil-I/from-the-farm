@@ -14,11 +14,16 @@ public class DemandsController : ControllerBase
 {
     private readonly IMongoRepository<DemandRequest> _demands;
     private readonly IMongoRepository<UserProfile> _users;
+    private readonly MatchGenerationService _matching;
 
-    public DemandsController(IMongoRepository<DemandRequest> demands, IMongoRepository<UserProfile> users)
+    public DemandsController(
+        IMongoRepository<DemandRequest> demands,
+        IMongoRepository<UserProfile> users,
+        MatchGenerationService matching)
     {
         _demands = demands;
         _users = users;
+        _matching = matching;
     }
 
     public record CreateDemandRequest(
@@ -50,7 +55,8 @@ public class DemandsController : ControllerBase
     public async Task<ActionResult<DemandRequest>> CreateDemand([FromBody] CreateDemandRequest request)
     {
         var uid = User.GetFirebaseUid();
-        var notAllowed = RoleRequirement.Check(await _users.GetByIdAsync(uid), "Buyer", "post demand requests");
+        var profile = await _users.GetByIdAsync(uid);
+        var notAllowed = RoleRequirement.Check(profile, "Buyer", "post demand requests");
         if (notAllowed is not null)
         {
             return StatusCode(StatusCodes.Status403Forbidden, notAllowed);
@@ -81,6 +87,9 @@ public class DemandsController : ControllerBase
         };
 
         var created = await _demands.UpsertAsync(demand);
+
+        await _matching.OnDemandCreatedAsync(created, profile!.SearchRadiusKm);
+
         return CreatedAtAction(nameof(GetDemands), new { }, created);
     }
 
