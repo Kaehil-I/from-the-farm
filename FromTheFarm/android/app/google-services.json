@@ -14,6 +14,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "127729053039-3q23c7c0tsgi6rst1n6pdjprocnvl6s3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fromthefarm.app",
+            "certificate_hash": "3e729d2682176b014053ed224125b93a15088323"
+          }
+        },
+        {
+          "client_id": "127729053039-n7fc8vhsf7pd5poqbitdlmftpn6ors67.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fromthefarm.app",
+            "certificate_hash": "7baca34f20742f8e4214f86de6f26c498fd1059b"
+          }
+        },
+        {
           "client_id": "127729053039-ntmbhofa98860h1bfmcitm39brtr5tmo.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
