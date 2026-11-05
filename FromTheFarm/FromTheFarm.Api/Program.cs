@@ -1,5 +1,7 @@
+using FirebaseAdmin;
 using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
+using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson.Serialization;
@@ -70,6 +72,26 @@ builder.Services.AddSingleton<IMongoRepository<Rating>>(sp => sp.GetRequiredServ
 
 builder.Services.AddSingleton<MatchingService>();
 
+// ---- Push notifications ----
+// FCM needs a Firebase service-account key. Render mounts it as a secret file
+// and the path is supplied through config; locally the standard
+// GOOGLE_APPLICATION_CREDENTIALS variable works too. Without either, pushes are
+// simply switched off so CI, tests and fresh clones still run.
+var serviceAccountPath = builder.Configuration["Firebase:ServiceAccountPath"]
+    ?? Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
+
+if (!string.IsNullOrWhiteSpace(serviceAccountPath) && File.Exists(serviceAccountPath))
+{
+    FirebaseApp.Create(new AppOptions { Credential = CredentialFactory.FromFile<ServiceAccountCredential>(serviceAccountPath).ToGoogleCredential() });
+    builder.Services.AddSingleton<IPushSender, FcmPushSender>();
+}
+else
+{
+    builder.Services.AddSingleton<IPushSender, NullPushSender>();
+}
+
+builder.Services.AddSingleton<NotificationService>();
+
 // ---- Firebase-issued ID token validation ----
 // Every request (aside from POST /auth/session's first-contact case) carries
 // a Firebase ID token in the Authorization header. This validates it against
@@ -98,6 +120,9 @@ var app = builder.Build();
 // Puts the running build in the host's log stream, so a deploy's logs can be
 // matched to a commit without calling the API.
 app.Logger.LogInformation("From The Farm API starting, build {Commit}", BuildInfo.Commit);
+app.Logger.LogInformation(
+    "Push notifications {State}.",
+    app.Services.GetRequiredService<IPushSender>() is FcmPushSender ? "enabled" : "disabled (no Firebase service account configured)");
 
 // Index creation is best-effort. A cluster that is briefly unreachable at
 // start-up should not stop the service coming up — the health endpoint is

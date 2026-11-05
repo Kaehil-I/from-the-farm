@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Security.Claims;
+using FromTheFarm.Api.Models;
 using FromTheFarm.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -77,5 +78,30 @@ internal static class SignedInAs
                 User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"))
             }
         };
+    }
+}
+
+// Records what would have been pushed, instead of calling FCM.
+internal sealed class FakePushSender : IPushSender
+{
+    public List<(IReadOnlyCollection<string> Tokens, PushMessage Message)> Sent { get; } = new();
+
+    // Tokens this fake reports back as permanently dead, like FCM's Unregistered.
+    public HashSet<string> DeadTokens { get; } = new();
+
+    public bool Throws { get; set; }
+
+    public Task<IReadOnlyList<string>> SendAsync(
+        IReadOnlyCollection<string> tokens,
+        PushMessage message,
+        CancellationToken cancellationToken = default)
+    {
+        if (Throws)
+        {
+            throw new InvalidOperationException("FCM is unreachable.");
+        }
+
+        Sent.Add((tokens, message));
+        return Task.FromResult<IReadOnlyList<string>>(tokens.Where(DeadTokens.Contains).ToList());
     }
 }

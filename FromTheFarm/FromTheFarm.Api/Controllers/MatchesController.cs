@@ -15,19 +15,22 @@ public class MatchesController : ControllerBase
     private readonly IMongoRepository<DemandRequest> _demands;
     private readonly IMongoRepository<MatchDocument> _matches;
     private readonly MatchingService _matchingService;
+    private readonly NotificationService _notifications;
 
     public MatchesController(
         IMongoRepository<UserProfile> users,
         IMongoRepository<Listing> listings,
         IMongoRepository<DemandRequest> demands,
         IMongoRepository<MatchDocument> matches,
-        MatchingService matchingService)
+        MatchingService matchingService,
+        NotificationService notifications)
     {
         _users = users;
         _listings = listings;
         _demands = demands;
         _matches = matches;
         _matchingService = matchingService;
+        _notifications = notifications;
     }
 
     public record MatchFeedItem(string MatchId, double Score, CounterpartSnapshot Counterpart, string Status);
@@ -115,6 +118,7 @@ public class MatchesController : ControllerBase
         match.Status = "Confirmed";
         match.ConfirmedAt = DateTime.UtcNow;
         await _matches.UpsertAsync(match);
+        await _notifications.NotifyAsync(OtherParty(match, uid), MatchNotification.Confirmed, match);
 
         return NoContent();
     }
@@ -141,6 +145,7 @@ public class MatchesController : ControllerBase
         match.Status = "Completed";
         match.CompletedAt = DateTime.UtcNow;
         await _matches.UpsertAsync(match);
+        await _notifications.NotifyAsync(OtherParty(match, uid), MatchNotification.Completed, match);
 
         return NoContent();
     }
@@ -179,6 +184,9 @@ public class MatchesController : ControllerBase
         return CreatedAtAction(nameof(GetMatchDetail), new { matchId }, null);
     }
 
+    private static string OtherParty(MatchDocument match, string uid) =>
+        match.FarmerId == uid ? match.BuyerId : match.FarmerId;
+
     private async Task GenerateMatchesForFarmerAsync(string farmerId, int searchRadiusKm)
     {
         var myListings = await _listings.FindAsync(l => l.FarmerId == farmerId && l.Status == "Active");
@@ -189,7 +197,7 @@ public class MatchesController : ControllerBase
 
             foreach (var demand in candidateDemands)
             {
-                await TryUpsertMatchAsync(listing, demand, searchRadiusKm);
+                await TryUpsertMatchAsync(listing, demand, searchRadiusKm, farmerId);
             }
         }
     }
@@ -204,12 +212,12 @@ public class MatchesController : ControllerBase
 
             foreach (var listing in candidateListings)
             {
-                await TryUpsertMatchAsync(listing, demand, searchRadiusKm);
+                await TryUpsertMatchAsync(listing, demand, searchRadiusKm, buyerId);
             }
         }
     }
 
-    private async Task TryUpsertMatchAsync(Listing listing, DemandRequest demand, int searchRadiusKm)
+    private async Task TryUpsertMatchAsync(Listing listing, DemandRequest demand, int searchRadiusKm, string requesterId)
     {
         var score = _matchingService.TryScoreMatch(listing, demand, searchRadiusKm);
         if (score is null) return;
@@ -240,5 +248,13 @@ public class MatchesController : ControllerBase
         };
 
         await _matches.UpsertAsync(match);
+
+        // Only a match that did not exist before is news. The feed regenerates
+        // matches on every fetch, so notifying on every upsert would repeat the
+        // same alert each time the recipient's counterpart opened the app.
+        if (existing is null)
+        {
+            await _notifications.NotifyAsync(OtherParty(match, requesterId), MatchNotification.NewMatch, match);
+        }
     }
 }
