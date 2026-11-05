@@ -134,5 +134,7 @@ class SettingsProfileTest {
         override suspend fun confirm(token: String, id: String) = Unit
         override suspend fun complete(token: String, id: String) = Unit
         override suspend fun rate(token: String, id: String, body: RatingWrite) = Unit
+        override suspend fun registerDevice(token: String, body: DeviceTokenWrite) = Unit
+        override suspend fun unregisterDevice(token: String, body: DeviceTokenWrite) = Unit
     }
 }

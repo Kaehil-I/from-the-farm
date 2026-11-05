@@ -212,12 +212,57 @@ class FarmViewModelTest {
         assertNotNull(vm.state.value.error)
     }
 
+    @Test fun registersThisDeviceForPushOnceTheSessionIsEstablished() = runTest(dispatcher) {
+        val source = FakeSource()
+        val vm = FarmViewModel(source)
+        advanceUntilIdle()
+        assertEquals(1, source.registrations)
+        assertEquals("user-one", vm.state.value.profile?.userId)
+    }
+
+    @Test fun aFailedPushRegistrationNeverBlocksOrBreaksSignIn() = runTest(dispatcher) {
+        val source = FakeSource().apply { registrationFailure = true }
+        val vm = FarmViewModel(source)
+        advanceUntilIdle()
+        assertEquals("user-one", vm.state.value.profile?.userId)
+        assertNull(vm.state.value.error)
+        assertFalse(vm.state.value.busy)
+    }
+
+    @Test fun aTappedNotificationIsHeldUntilTheScreenConsumesIt() = runTest(dispatcher) {
+        val vm = FarmViewModel(FakeSource())
+        advanceUntilIdle()
+        assertNull(vm.pendingMatch.value)
+        vm.openMatchFromNotification("listing:demand")
+        assertEquals("listing:demand", vm.pendingMatch.value)
+        vm.consumePendingMatch()
+        assertNull(vm.pendingMatch.value)
+    }
+
+    @Test fun aBlankNotificationMatchIdIsIgnored() = runTest(dispatcher) {
+        val vm = FarmViewModel(FakeSource())
+        advanceUntilIdle()
+        vm.openMatchFromNotification("  ")
+        vm.openMatchFromNotification(null)
+        assertNull(vm.pendingMatch.value)
+    }
+
+    @Test fun aNotificationTappedBeforeSessionSetupSurvivesIt() = runTest(dispatcher) {
+        val vm = FarmViewModel(FakeSource())
+        vm.openMatchFromNotification("listing:demand")
+        advanceUntilIdle()
+        assertEquals("listing:demand", vm.pendingMatch.value)
+    }
+
     private class FakeSource : FarmDataSource {
         val backend = FakeApi()
         override val api: FarmApi = backend
         var loggedOut = false
         var cleanupFailure = false
         var deviceBiometrics = false
+        var registrations = 0
+        var registrationFailure = false
+        override suspend fun registerDevice() { registrations++; if (registrationFailure) error("push unavailable") }
         override fun biometricEnabled() = deviceBiometrics
         override fun setBiometricEnabled(enabled: Boolean) { deviceBiometrics = enabled }
         override fun hasSession() = true
@@ -267,5 +312,7 @@ class FarmViewModelTest {
         override suspend fun confirm(token: String, id: String) = Unit
         override suspend fun complete(token: String, id: String) { completions++; matchStatus = "Completed" }
         override suspend fun rate(token: String, id: String, body: RatingWrite) { ratings++ }
+        override suspend fun registerDevice(token: String, body: DeviceTokenWrite) = Unit
+        override suspend fun unregisterDevice(token: String, body: DeviceTokenWrite) = Unit
     }
 }

@@ -80,6 +80,25 @@ class FarmApiTest {
         assertFalse(body.has("quantity"))
     }
 
+    @Test fun registersADeviceWithAnAuthenticatedPut() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(204))
+        api.registerDevice("Bearer test", DeviceTokenWrite("fcm-token"))
+        val request = server.takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals("/api/v1/users/me/devices", request.path)
+        assertEquals("Bearer test", request.getHeader("Authorization"))
+        assertEquals("""{"token":"fcm-token"}""", request.body.readUtf8())
+    }
+
+    @Test fun unregistersADeviceWithABodyOnDelete() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(204))
+        api.unregisterDevice("Bearer test", DeviceTokenWrite("fcm-token"))
+        val request = server.takeRequest()
+        assertEquals("DELETE", request.method)
+        assertEquals("/api/v1/users/me/devices", request.path)
+        assertEquals("""{"token":"fcm-token"}""", request.body.readUtf8())
+    }
+
     @Test fun usesSingularRatingEndpoint() = runBlocking {
         server.enqueue(MockResponse().setResponseCode(201))
         api.rate("Bearer test", "m1", RatingWrite(true))
