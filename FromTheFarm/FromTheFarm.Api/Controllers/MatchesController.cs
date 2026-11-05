@@ -62,6 +62,7 @@ public class MatchesController : ControllerBase
         }
 
         var results = await _matches.FindAsync(m => m.FarmerId == uid || m.BuyerId == uid);
+        results = await _generation.DropStaleSuggestionsAsync(results);
 
         var ordered = results
             .OrderByDescending(m => m.Score)
@@ -107,6 +108,15 @@ public class MatchesController : ControllerBase
         if (match.Status != "Suggested")
         {
             return BadRequest($"Match must be in 'Suggested' status to confirm — current status is '{match.Status}'.");
+        }
+
+        // Confirming releases both parties' contact details, so it must not
+        // succeed against a listing that was deleted or a demand that has expired
+        // since the suggestion was made.
+        if (!await _generation.IsStillAvailableAsync(match))
+        {
+            await _matches.DeleteAsync(match.Id);
+            return NotFound("This match is no longer available.");
         }
 
         match.Status = "Confirmed";

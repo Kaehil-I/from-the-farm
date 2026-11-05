@@ -33,6 +33,65 @@ public class MatchGenerationService
         _logger = logger;
     }
 
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow);
+
+    // Whether a pair is still worth showing. A deleted listing, a closed or
+    // expired demand, or a user matched with their own records (possible after
+    // switching role) has no business in anyone's feed.
+    public static bool IsStillAvailable(Listing? listing, DemandRequest? demand) =>
+        listing is { Status: "Active" }
+        && demand is { Status: "Open" }
+        && demand.Deadline >= Today
+        && listing.FarmerId != demand.BuyerId
+        && string.Equals(listing.CropType, demand.CropType, StringComparison.OrdinalIgnoreCase);
+
+    public async Task<bool> IsStillAvailableAsync(MatchDocument match) =>
+        IsStillAvailable(
+            await _listings.GetByIdAsync(match.ListingId),
+            await _demands.GetByIdAsync(match.DemandRequestId));
+
+    // Removes suggestions whose listing or demand has since gone away and returns
+    // the matches that remain. Only Suggested matches are dropped: a Confirmed or
+    // Completed one records an exchange that was agreed or happened, and stays
+    // as history even if the listing behind it is later deleted.
+    public async Task<List<MatchDocument>> DropStaleSuggestionsAsync(List<MatchDocument> matches)
+    {
+        var suggested = matches.Where(m => m.Status == "Suggested").ToList();
+        if (suggested.Count == 0)
+        {
+            return matches;
+        }
+
+        var listingIds = suggested.Select(m => m.ListingId).Distinct().ToList();
+        var demandIds = suggested.Select(m => m.DemandRequestId).Distinct().ToList();
+        var listings = (await _listings.FindAsync(l => listingIds.Contains(l.Id))).ToDictionary(l => l.Id);
+        var demands = (await _demands.FindAsync(d => demandIds.Contains(d.Id))).ToDictionary(d => d.Id);
+
+        var kept = new List<MatchDocument>();
+        foreach (var match in matches)
+        {
+            if (match.Status != "Suggested")
+            {
+                kept.Add(match);
+                continue;
+            }
+
+            listings.TryGetValue(match.ListingId, out var listing);
+            demands.TryGetValue(match.DemandRequestId, out var demand);
+
+            if (IsStillAvailable(listing, demand))
+            {
+                kept.Add(match);
+            }
+            else
+            {
+                await _matches.DeleteAsync(match.Id);
+            }
+        }
+
+        return kept;
+    }
+
     public async Task GenerateForFarmerAsync(string farmerId, int searchRadiusKm)
     {
         var myListings = await _listings.FindAsync(l => l.FarmerId == farmerId && l.Status == "Active");
@@ -102,6 +161,8 @@ public class MatchGenerationService
 
     private async Task TryUpsertMatchAsync(Listing listing, DemandRequest demand, int searchRadiusKm, string requesterId)
     {
+        if (!IsStillAvailable(listing, demand)) return;
+
         var score = _matchingService.TryScoreMatch(listing, demand, searchRadiusKm);
         if (score is null) return;
 
