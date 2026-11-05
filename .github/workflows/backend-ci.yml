@@ -7,7 +7,7 @@ on:
       - "FromTheFarm/FromTheFarm.Api.Tests/**"
       - ".github/workflows/backend-ci.yml"
   pull_request:
-    branches: [main]
+    branches: [main, Part-3-Integration]
     paths:
       - "FromTheFarm/FromTheFarm.Api/**"
       - "FromTheFarm/FromTheFarm.Api.Tests/**"

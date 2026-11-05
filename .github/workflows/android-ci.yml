@@ -6,7 +6,7 @@ on:
       - "FromTheFarm/android/**"
       - ".github/workflows/android-ci.yml"
   pull_request:
-    branches: [main]
+    branches: [main, Part-3-Integration]
     paths:
       - "FromTheFarm/android/**"
       - ".github/workflows/android-ci.yml"
