@@ -70,6 +70,9 @@ builder.Services.AddSingleton<IMongoRepository<DemandRequest>>(sp => sp.GetRequi
 builder.Services.AddSingleton<IMongoRepository<MatchDocument>>(sp => sp.GetRequiredService<MongoRepository<MatchDocument>>());
 builder.Services.AddSingleton<IMongoRepository<Rating>>(sp => sp.GetRequiredService<MongoRepository<Rating>>());
 
+// Listing photos live in GridFS blob storage rather than inline on documents.
+builder.Services.AddSingleton<IPhotoStore, GridFsPhotoStore>();
+
 builder.Services.AddSingleton<MatchingService>();
 
 // ---- Push notifications ----

@@ -113,7 +113,18 @@ public static class RequestValidation
     // supplied — callers treat that as "leave the existing photo alone".
     public static string? Photo(string? base64, out string? dataUri)
     {
-        dataUri = null;
+        var error = DecodePhoto(base64, out var bytes, out var mediaType);
+        dataUri = bytes is null ? null : $"data:{mediaType};base64,{Convert.ToBase64String(bytes)}";
+        return error;
+    }
+
+    // The same checks as Photo, but handing back the decoded bytes and their
+    // media type so they can go to blob storage instead of inline on a document.
+    // Both outputs are null when no photo was supplied.
+    public static string? DecodePhoto(string? base64, out byte[]? photoBytes, out string? photoMediaType)
+    {
+        photoBytes = null;
+        photoMediaType = null;
 
         if (string.IsNullOrWhiteSpace(base64))
         {
@@ -157,7 +168,8 @@ public static class RequestValidation
             return "photo must be a JPEG or PNG image.";
         }
 
-        dataUri = $"data:{mediaType};base64,{payload}";
+        photoBytes = bytes;
+        photoMediaType = mediaType;
         return null;
     }
 

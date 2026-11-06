@@ -15,15 +15,40 @@ public class ListingsController : ControllerBase
     private readonly IMongoRepository<Listing> _listings;
     private readonly IMongoRepository<UserProfile> _users;
     private readonly MatchGenerationService _matching;
+    private readonly IPhotoStore? _photos;
 
+    // photos is optional so a caller with no blob storage keeps the original
+    // behaviour of holding the image inline on the document. The deployed API
+    // always registers a store.
     public ListingsController(
         IMongoRepository<Listing> listings,
         IMongoRepository<UserProfile> users,
-        MatchGenerationService matching)
+        MatchGenerationService matching,
+        IPhotoStore? photos = null)
     {
         _listings = listings;
         _users = users;
         _matching = matching;
+        _photos = photos;
+    }
+
+    // Turns a validated upload into the value a listing keeps in PhotoUrl: a link
+    // to the stored blob, or an inline data URI when there is no store. Null means
+    // no photo was supplied.
+    private async Task<string?> StorePhotoAsync(string? photoBase64)
+    {
+        RequestValidation.DecodePhoto(photoBase64, out var bytes, out var mediaType);
+        if (bytes is null || mediaType is null)
+        {
+            return null;
+        }
+        if (_photos is null)
+        {
+            return $"data:{mediaType};base64,{Convert.ToBase64String(bytes)}";
+        }
+
+        var id = await _photos.SaveAsync(bytes, mediaType);
+        return PhotoLinks.For(Request, id);
     }
 
     public record CreateListingRequest(
@@ -93,7 +118,7 @@ public class ListingsController : ControllerBase
             return BadRequest(invalid);
         }
 
-        var photoError = RequestValidation.Photo(request.PhotoBase64, out var photoDataUri);
+        var photoError = RequestValidation.DecodePhoto(request.PhotoBase64, out _, out _);
         if (photoError is not null)
         {
             return BadRequest(photoError);
@@ -125,11 +150,8 @@ public class ListingsController : ControllerBase
             Unit = request.Unit,
             HarvestDate = request.HarvestDate,
             Location = request.Location,
-            // Part 2 stores the image inline on the document as a data URI so
-            // photos round-trip without a separate upload step. The POE's object
-            // storage task replaces this with a hosted URL; a Mongo document is
-            // capped at 16MB, so this holds for compressed phone photos only.
-            PhotoUrl = photoDataUri
+            // The image goes to blob storage and the listing keeps only its URL.
+            PhotoUrl = await StorePhotoAsync(request.PhotoBase64)
         };
 
         var created = await _listings.UpsertAsync(listing);
@@ -150,7 +172,7 @@ public class ListingsController : ControllerBase
             return BadRequest(invalid);
         }
 
-        var photoError = RequestValidation.Photo(request.PhotoBase64, out var photoDataUri);
+        var photoError = RequestValidation.DecodePhoto(request.PhotoBase64, out _, out _);
         if (photoError is not null)
         {
             return BadRequest(photoError);
@@ -178,9 +200,15 @@ public class ListingsController : ControllerBase
 
         // The app only sends a photo when the user picks a new one, so an absent
         // payload means "keep the current image" rather than "remove it".
-        if (photoDataUri is not null)
+        var newPhotoUrl = await StorePhotoAsync(request.PhotoBase64);
+        if (newPhotoUrl is not null)
         {
-            existing.PhotoUrl = photoDataUri;
+            var replacedId = PhotoLinks.IdFrom(existing.PhotoUrl);
+            existing.PhotoUrl = newPhotoUrl;
+            if (replacedId is not null && _photos is not null)
+            {
+                await _photos.DeleteAsync(replacedId);
+            }
         }
 
         var updated = await _listings.UpsertAsync(existing);
@@ -211,6 +239,14 @@ public class ListingsController : ControllerBase
         // Soft-delete: preserves history for any matches already generated
         // against this listing, per Section 5.
         existing.Status = "Deleted";
+
+        // A deleted listing has no use for its photo, so free the stored blob.
+        var photoId = PhotoLinks.IdFrom(existing.PhotoUrl);
+        if (photoId is not null && _photos is not null)
+        {
+            await _photos.DeleteAsync(photoId);
+            existing.PhotoUrl = null;
+        }
         await _listings.UpsertAsync(existing);
         return NoContent();
     }
