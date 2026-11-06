@@ -119,7 +119,6 @@ android/app/src/main/java/com/fromthefarm/app/
 │   ├── offline/                      — Room tables, outbox queue, upload logic, background sync and connectivity (see Offline sync)
 │   ├── FormValidation.kt             — shared listing/demand field validation
 │   ├── UserRole.kt                   — FARMER / BUYER
-│   └── SampleData.kt                 — retained for the Part 1 preview screens only; live screens never use it
 ├── ui/
 │   ├── FarmViewModel.kt              — single state holder: session, profile, listings/demands/matches, error mapping
 │   ├── AppLanguage.kt                — applies the profile's language as the app language
