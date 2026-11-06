@@ -203,7 +203,7 @@ cd android
 
 - Zario Di Paolo — Android frontend (auth wiring, live screens, navigation, forms, biometric unlock), Unit Testing
 - Kaehil Indurjeeth — backend deployment, Firebase token verification, matching/feed logic, CI/CD, Unit Testing
-- Gregory Luyckfasseel — listing/demand CRUD ownership, Mongo validation, photo support, profile/settings persistence
+- Gregory Luyckfasseel — listing/demand CRUD ownership, Mongo validation, photo support, profile/settings persistence; Part 3: offline creation and sync (Room storage, outbox queue, duplicate-safe creates, automatic upload, sync state for the screens)
 - Kyra Naidoo — Research Report, unit test drafting, README draft; Part 3: localisation (English, isiZulu, Afrikaans), manual test matrix and translation checklist, README and release notes
 
 ## References
