@@ -43,3 +43,8 @@ jobs:
 
       - name: Lint
         run: ./gradlew lintDebug --stacktrace
+
+      # Catches a broken release configuration (signing wiring, lint checks that only run
+      # for release) on every change instead of at tag time. Unsigned, so it needs no secrets.
+      - name: Assemble release APK (unsigned)
+        run: ./gradlew assembleRelease --stacktrace

@@ -74,7 +74,7 @@ public class MatchesControllerTests
     public async Task ConfirmMatch_MovesSuggestedToConfirmed_ForEitherParty(string caller)
     {
         var matches = new FakeRepository<MatchDocument>(AMatch("Suggested"));
-        var controller = ControllerFor(caller, matches: matches);
+        var controller = ControllerFor(caller, matches: matches, listings: new FakeRepository<Listing>(AListing()), demands: new FakeRepository<DemandRequest>(ADemand()));
         var before = DateTime.UtcNow;
 
         var result = await controller.ConfirmMatch(MatchId);
@@ -90,7 +90,7 @@ public class MatchesControllerTests
     public async Task ConfirmMatch_ReturnsNotFound_ToSomeoneWhoIsNotInTheMatch()
     {
         var matches = new FakeRepository<MatchDocument>(AMatch("Suggested"));
-        var controller = ControllerFor(Stranger, matches: matches);
+        var controller = ControllerFor(Stranger, matches: matches, listings: new FakeRepository<Listing>(AListing()), demands: new FakeRepository<DemandRequest>(ADemand()));
 
         var result = await controller.ConfirmMatch(MatchId);
 
@@ -102,7 +102,7 @@ public class MatchesControllerTests
     [Fact]
     public async Task ConfirmMatch_ReturnsNotFound_WhenTheMatchDoesNotExist()
     {
-        var controller = ControllerFor(Farmer);
+        var controller = ControllerFor(Farmer, listings: new FakeRepository<Listing>(AListing()), demands: new FakeRepository<DemandRequest>(ADemand()));
 
         var result = await controller.ConfirmMatch(MatchId);
 
@@ -115,7 +115,7 @@ public class MatchesControllerTests
     public async Task ConfirmMatch_IsRefused_UnlessTheMatchIsSuggested(string status)
     {
         var matches = new FakeRepository<MatchDocument>(AMatch(status));
-        var controller = ControllerFor(Farmer, matches: matches);
+        var controller = ControllerFor(Farmer, matches: matches, listings: new FakeRepository<Listing>(AListing()), demands: new FakeRepository<DemandRequest>(ADemand()));
 
         var result = await controller.ConfirmMatch(MatchId);
 
@@ -341,8 +341,14 @@ public class MatchesControllerTests
             AMatch("Suggested", id: "low", score: 0.5),
             AMatch("Suggested", id: "high", score: 0.9),
             AMatch("Suggested", id: "someone-elses", score: 0.99, farmer: "other-farmer", buyer: "other-buyer"));
+        // The records behind the seeded matches belong to another farmer, so the
+        // feed's own match generation for this farmer adds nothing to the result.
+        var backing = AListing();
+        backing.FarmerId = "other-farmer";
         var controller = ControllerFor(Farmer, matches,
-            users: new FakeRepository<UserProfile>(AProfile(Farmer, "Farmer")));
+            users: new FakeRepository<UserProfile>(AProfile(Farmer, "Farmer")),
+            listings: new FakeRepository<Listing>(backing),
+            demands: new FakeRepository<DemandRequest>(ADemand()));
 
         var feed = Feed(await controller.GetFeed());
 
@@ -412,7 +418,7 @@ public class MatchesControllerTests
         var users = new FakeRepository<UserProfile>(
             WithDevice(AProfile(Farmer, "Farmer"), "farmer-phone"),
             WithDevice(AProfile(Buyer, "Buyer"), "buyer-phone"));
-        var controller = ControllerFor(Buyer, new FakeRepository<MatchDocument>(AMatch("Suggested")), users, push: push);
+        var controller = ControllerFor(Buyer, new FakeRepository<MatchDocument>(AMatch("Suggested")), users, push: push, listings: new FakeRepository<Listing>(AListing()), demands: new FakeRepository<DemandRequest>(ADemand()));
 
         await controller.ConfirmMatch(MatchId);
 
@@ -444,7 +450,7 @@ public class MatchesControllerTests
         var farmer = WithDevice(AProfile(Farmer, "Farmer"), "farmer-phone");
         farmer.NotificationsEnabled = false;
         var controller = ControllerFor(Buyer, new FakeRepository<MatchDocument>(AMatch("Suggested")),
-            new FakeRepository<UserProfile>(farmer, AProfile(Buyer, "Buyer")), push: push);
+            new FakeRepository<UserProfile>(farmer, AProfile(Buyer, "Buyer")), push: push, listings: new FakeRepository<Listing>(AListing()), demands: new FakeRepository<DemandRequest>(ADemand()));
 
         await controller.ConfirmMatch(MatchId);
 
@@ -456,7 +462,7 @@ public class MatchesControllerTests
     {
         var push = new FakePushSender();
         var controller = ControllerFor(Buyer, new FakeRepository<MatchDocument>(AMatch("Suggested")),
-            new FakeRepository<UserProfile>(AProfile(Farmer, "Farmer"), AProfile(Buyer, "Buyer")), push: push);
+            new FakeRepository<UserProfile>(AProfile(Farmer, "Farmer"), AProfile(Buyer, "Buyer")), push: push, listings: new FakeRepository<Listing>(AListing()), demands: new FakeRepository<DemandRequest>(ADemand()));
 
         await controller.ConfirmMatch(MatchId);
 
@@ -469,7 +475,7 @@ public class MatchesControllerTests
         var matches = new FakeRepository<MatchDocument>(AMatch("Suggested"));
         var controller = ControllerFor(Buyer, matches,
             new FakeRepository<UserProfile>(WithDevice(AProfile(Farmer, "Farmer"), "farmer-phone"), AProfile(Buyer, "Buyer")),
-            push: new FakePushSender { Throws = true });
+            push: new FakePushSender { Throws = true }, listings: new FakeRepository<Listing>(AListing()), demands: new FakeRepository<DemandRequest>(ADemand()));
 
         var result = await controller.ConfirmMatch(MatchId);
 
@@ -484,7 +490,7 @@ public class MatchesControllerTests
         push.DeadTokens.Add("uninstalled-phone");
         var farmer = WithDevice(WithDevice(AProfile(Farmer, "Farmer"), "uninstalled-phone"), "current-phone");
         var users = new FakeRepository<UserProfile>(farmer, AProfile(Buyer, "Buyer"));
-        var controller = ControllerFor(Buyer, new FakeRepository<MatchDocument>(AMatch("Suggested")), users, push: push);
+        var controller = ControllerFor(Buyer, new FakeRepository<MatchDocument>(AMatch("Suggested")), users, push: push, listings: new FakeRepository<Listing>(AListing()), demands: new FakeRepository<DemandRequest>(ADemand()));
 
         await controller.ConfirmMatch(MatchId);
 
@@ -498,7 +504,8 @@ public class MatchesControllerTests
         var farmer = WithDevice(AProfile(Farmer, "Farmer"), "farmer-phone");
         farmer.Language = "af";
         var controller = ControllerFor(Buyer, new FakeRepository<MatchDocument>(AMatch("Suggested")),
-            new FakeRepository<UserProfile>(farmer, AProfile(Buyer, "Buyer")), push: push);
+            new FakeRepository<UserProfile>(farmer, AProfile(Buyer, "Buyer")), push: push,
+            listings: new FakeRepository<Listing>(AListing()), demands: new FakeRepository<DemandRequest>(ADemand()));
 
         await controller.ConfirmMatch(MatchId);
 
@@ -584,7 +591,7 @@ public class MatchesControllerTests
         CropType = crop,
         QuantityNeeded = 100,
         Unit = "kg",
-        Deadline = new DateOnly(2026, 10, 10),
+        Deadline = new DateOnly(2099, 12, 31),
         Location = new GeoLocation { Latitude = lat, Longitude = lon },
         Status = status
     };

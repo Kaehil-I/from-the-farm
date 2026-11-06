@@ -11,6 +11,17 @@ These notes cover everything added after the Part 2 integration (pull request #8
 | Biometric unlock | Strong biometrics only | Android-supported fingerprint and face unlock, with clearer errors |
 | Language | The selector saved a preference but every screen stayed English | English, isiZulu and Afrikaans across the app |
 | Matching | Generated when the feed was opened | Also generated when a listing or demand is posted, so the other party is alerted at once |
+| Photos | Stored inside each listing document | Stored in blob storage (MongoDB GridFS) and served by link |
+| API contract | Rating `POST` only; no calendar endpoint | Adds `GET` rating and `GET /calendar` from the design document |
+
+## Photo storage and design-document endpoints (Kaehil Indurjeeth)
+
+- **Blob storage.** Listing photos are no longer base64 text inside the listing document. The API validates the upload, stores the bytes in a MongoDB GridFS bucket and keeps only a link on the listing. `GET /api/v1/photos/{id}` serves the image. The endpoint is public because the app loads images with a plain HTTPS request, and the ids are random 32-character values, not guessable ObjectIds.
+- **Cleanup.** Replacing a photo or deleting a listing removes the stored image. Listings created earlier keep their inline image until the photo is replaced.
+- **Rating lookup.** `GET /api/v1/matches/{id}/rating` returns the caller's own rating, or 204 if they have not rated. It never exposes the other party's rating.
+- **Harvest calendar.** `GET /api/v1/calendar?month=&year=` groups active listings by harvest date, returning crop, quantity, unit and an `isMine` flag, with no coordinates or owner ids.
+- **Matching and privacy hardening.** Stale, self-referential and expired matches are no longer created or notified, and browsing shows locations rounded to about 1 km with owner ids removed.
+- **Release pipeline.** A signed release workflow builds the APK and app bundle from a tag and publishes them with checksums; keystore and passwords come from repository secrets.
 
 ## Offline creation and sync (Gregory Luyckfasseel)
 
@@ -56,8 +67,8 @@ These notes cover everything added after the Part 2 integration (pull request #8
 - **Translations need a native-speaker review.** The isiZulu and Afrikaans text is a first draft. The push notification wording written by the API has also not been reviewed.
 - **Tested on an emulator with fake data, not with a real account.** The real screens and ViewModel were run in English, isiZulu and Afrikaans as both a Farmer and a Buyer (Home, Listings or Demand, forms, Calendar, Settings, match details, the locked screen) and the language switch from Settings was tested end to end. All 5 of those tests pass. Google sign-in, the real API and a real phone were not used, because sign-in needs the build's signing key to be registered in the Firebase project. Details and the rows still not run are in `Documentation/Test-Matrix.md`.
 - **Confirmation messages vanish quickly.** "Preferences saved." and "Exchange marked completed." were not seen on screen within 3 seconds, most likely because the automatic refresh that follows clears them. This predates the localisation work (Test-Matrix finding F-01).
-- **Push delivery, the system fingerprint dialog and the Android notification settings screen** have not been checked on a physical device.
+- **Physical-device checks.** Push delivery and biometric unlock were checked on a physical phone by Kaehil. The Android notification settings screen has not been.
 - **Offline scope.** Only creating is queued. Editing and deleting need a connection, and a cold start without a connection cannot load the profile.
 - **Failed-upload error text is still English.** The reason shown on a saved record that failed to upload is written by the upload code (`OutboxProcessor`) and stored with the record, so it is not translated yet. The rest of the offline sync screen is translated.
-- **Photos** are still stored inline on the record, not in object storage.
+- **Photos from before the blob-storage change** keep their inline image until the photo is replaced.
 - **Unit tests only on this branch.** All 65 Android unit tests pass at commit `58ade8f`. The Part 1 preview screens are not wired into the app and remain English.

@@ -120,7 +120,6 @@ android/app/src/main/java/com/fromthefarm/app/
 │   ├── offline/                      — Room tables, outbox queue, upload logic, background sync and connectivity (see Offline sync)
 │   ├── FormValidation.kt             — shared listing/demand field validation
 │   ├── UserRole.kt                   — FARMER / BUYER
-│   └── SampleData.kt                 — retained for the Part 1 preview screens only; live screens never use it
 ├── ui/
 │   ├── FarmViewModel.kt              — single state holder: session, profile, listings/demands/matches, error mapping
 │   ├── AppLanguage.kt                — applies the profile's language as the app language
@@ -150,7 +149,7 @@ Creating a listing or a demand request works without a connection. The app keeps
 - Upload outcomes are handled by cause. A dropped connection leaves the record queued and is not counted as an attempt. A 5xx, 408 or 429 response counts an attempt and the record is marked **failed** after five. Any other refusal (validation, ownership) marks it failed immediately with a message, and the next record still uploads. A 401 pauses uploading until the person signs in again, and nothing is lost.
 - Reading keeps working when the connection drops during a session. The last listings and demands the server returned are cached in Room per user and shown if a refresh fails. Signing out clears that cached copy; records that have not uploaded yet stay on the phone and upload the next time the same account signs in. Every query is scoped to the signed-in user.
 - The screens read sync status from `FarmViewModel.sync`: `offline`, `syncing`, `records` (each with `PENDING` or `FAILED` status and the last error), `pendingCount` and `failedCount`, plus `syncNow()`, `retryRecord(id)` and `discardRecord(id)`. It sits outside `FarmState` so a sign-in or sign-out cannot wipe the queue the person is looking at.
-- Limits: only creating is queued, so editing or deleting a record needs a connection. Starting the app from a cold start still needs a connection, because the session and profile are not cached. A queued listing photo is still stored inline with the record, as it is on the server, until photos move to object storage. The Room schema is version 1 with no migration yet; the first change to a table needs one, because the outbox holds unsent data.
+- Limits: only creating is queued, so editing or deleting a record needs a connection. Starting the app from a cold start still needs a connection, because the session and profile are not cached. A queued record with a photo keeps the compressed image on the phone until it uploads; once it reaches the API the photo goes to blob storage and the listing keeps only a link. The Room schema is version 1 with no migration yet; the first change to a table needs one, because the outbox holds unsent data.
 
 The storage, queue and upload rules are covered by 13 unit tests: the upload logic against a mock server (ordering, a dropped connection reusing the same id, refusals, retry limit, a rejected login, per-account scoping, duplicate ids) and the view model (queueing while offline, upload on reconnect, a lost response not duplicating, a refused create not being queued, demands, retry and discard). The Room database itself and the connectivity callback need a device or emulator; `Documentation/Offline-Sync-Demo.md` has the steps to demonstrate and verify them.
 
@@ -168,7 +167,7 @@ The app is available in **English, isiZulu and Afrikaans**.
 
 ## Testing status
 
-- **Backend**: 170 xUnit test methods, run in CI on every push. Every controller except `HealthController` is tested against an in-memory `IMongoRepository` double: ownership, role and validation rules for listings, demands and profiles; the whole match lifecycle (Suggested → Confirmed → Completed with no stage skipped, contact details hidden until confirmed, one rating per user, outsiders get 404); feed generation from both the farmer's and the buyer's side; and the sign-in profile create-or-fetch. Alongside them sit matching and distance calculations, crop/radius/quantity/freshness rules and BSON date serialization. Not covered: `HealthController`, the concrete `MongoRepository` and `MongoIndexes` (they need a live cluster), and `ClaimsPrincipalExtensions`.
+- **Backend**: 236 xUnit test cases, run in CI on every push. Every controller except `HealthController` is tested against an in-memory `IMongoRepository` double: ownership, role and validation rules for listings, demands and profiles; the whole match lifecycle (Suggested → Confirmed → Completed with no stage skipped, contact details hidden until confirmed, one rating per user, outsiders get 404); feed generation from both the farmer's and the buyer's side; and the sign-in profile create-or-fetch. Alongside them sit matching and distance calculations, crop/radius/quantity/freshness rules and BSON date serialization. Not covered: `HealthController`, the concrete `MongoRepository`, `MongoIndexes` and `GridFsPhotoStore` (they need a live cluster), and `ClaimsPrincipalExtensions`.
 - **Android**: 65 unit tests (all passing) cover the Retrofit contract, Firebase Bearer headers, validation, crop normalization, buyer recommendations, range filtering, recommendation deduplication, catalogue preservation after nearby searches, session recovery, CRUD operations, match lifecycle, settings, the offline queue and upload logic, and notification rules. Compose UI, biometric, image-picker and device-location flows require emulator or physical-device tests.
 - **Manual**: `Documentation/Test-Matrix.md` records the manual localisation tests and regression checklist, and says what was and was not run. On an emulator, the sign-in screen, the signed-in screens (as a Farmer and a Buyer, using fake data) and the language switch from Settings were checked in English, isiZulu and Afrikaans. Not yet run: Google sign-in with a real account, the real API, and a physical phone (push delivery, the system fingerprint dialog).
 
@@ -218,8 +217,10 @@ The app does not declare a camera or storage permission. A listing photo is chos
 - Push notifications (Firebase Cloud Messaging) are implemented on both sides: the API registers device tokens and sends a push for new matches and match status changes, and the app registers, asks for the notification permission and opens the right match when a notification is tapped. Delivery on a physical device is not recorded in these docs yet.
 - Offline creation and sync covers new listings and demand requests only. Editing and deleting a record needs a connection (see Offline sync).
 - The isiZulu and Afrikaans translations have not had a native-speaker review (see Localisation), and the signed-in screens have not yet been checked in those languages on a device.
-- Editing a listing can replace its photo but not remove it, and photos are stored inline on the listing document as base64, which is a stopgap for real object storage.
-- The rating endpoint is `POST /matches/{id}/rating`; the design document specifies `/ratings` plus a `GET` for the caller's own rating, so the app tracks "already rated" locally.
+- Editing a listing can replace its photo but not remove it. Photos are held in MongoDB GridFS blob storage and served from `GET /api/v1/photos/{id}` (public, unguessable ids); listings created before that change keep their old inline image until the photo is replaced.
+- The rating endpoint is `POST /matches/{id}/rating` (singular), with `GET /matches/{id}/rating` returning the caller's own rating; the design document specified `/ratings`. The app does not call the `GET` yet and tracks "already rated" locally.
+- `GET /api/v1/calendar` implements the design's harvest calendar endpoint, but the app builds its calendar from the listings it already holds rather than calling it.
+- The design document named Azure Cosmos DB; the build uses MongoDB Atlas, a document database with the same shape of data and no joins.
 - The `farmName` / `buyerName` public labels from the design document are not implemented; a match card shows crop, quantity and distance only until the match is confirmed.
 - `HealthController`, the concrete `MongoRepository`/`MongoIndexes` and `ClaimsPrincipalExtensions` have no automated tests (see Testing status).
 - Buyer Home measures nearby products from the closest open-demand location because the profile does not contain a separate permanent buyer location.
@@ -229,7 +230,7 @@ The app does not declare a camera or storage permission. A listing photo is chos
 
 - Zario Di Paolo — Android frontend (auth wiring, live screens, navigation, forms, biometric unlock), Unit Testing
 - Kaehil Indurjeeth — backend deployment, Firebase token verification, matching/feed logic, CI/CD, Unit Testing
-- Gregory Luyckfasseel — listing/demand CRUD ownership, Mongo validation, photo support, profile/settings persistence
+- Gregory Luyckfasseel — listing/demand CRUD ownership, Mongo validation, photo support, profile/settings persistence; Part 3: offline creation and sync (Room storage, outbox queue, duplicate-safe creates, automatic upload, sync state for the screens)
 - Kyra Naidoo — Research Report, unit test drafting, README draft; Part 3: localisation (English, isiZulu, Afrikaans), manual test matrix and translation checklist, README and release notes
 
 ## References

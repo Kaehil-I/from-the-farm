@@ -31,6 +31,7 @@ public class MatchesController : ControllerBase
     public record ContactInfo(string? DisplayName, string? Phone);
     public record MatchDetailResponse(string MatchId, double Score, string Status, ContactInfo CounterpartContact);
     public record RatingRequest(bool ThumbsUp);
+    public record RatingResponse(bool ThumbsUp, DateTime CreatedAt);
 
     // Section 5: user is identified from the auth token, not a path
     // parameter — a deliberate refinement over the worksheet's
@@ -62,6 +63,7 @@ public class MatchesController : ControllerBase
         }
 
         var results = await _matches.FindAsync(m => m.FarmerId == uid || m.BuyerId == uid);
+        results = await _generation.DropStaleSuggestionsAsync(results);
 
         var ordered = results
             .OrderByDescending(m => m.Score)
@@ -107,6 +109,15 @@ public class MatchesController : ControllerBase
         if (match.Status != "Suggested")
         {
             return BadRequest($"Match must be in 'Suggested' status to confirm — current status is '{match.Status}'.");
+        }
+
+        // Confirming releases both parties' contact details, so it must not
+        // succeed against a listing that was deleted or a demand that has expired
+        // since the suggestion was made.
+        if (!await _generation.IsStillAvailableAsync(match))
+        {
+            await _matches.DeleteAsync(match.Id);
+            return NotFound("This match is no longer available.");
         }
 
         match.Status = "Confirmed";
@@ -176,6 +187,24 @@ public class MatchesController : ControllerBase
 
         await ratings.UpsertAsync(rating);
         return CreatedAtAction(nameof(GetMatchDetail), new { matchId }, null);
+    }
+
+    // Design 5.3.6: lets the client hide the rating control after submission
+    // without relying on local state (which a reinstall would lose). Returns
+    // only the caller's own rating; 204 means they have not rated yet.
+    [HttpGet("{matchId}/rating")]
+    public async Task<IActionResult> GetRating(string matchId, [FromServices] IMongoRepository<Rating> ratings)
+    {
+        var uid = User.GetFirebaseUid();
+        var match = await _matches.GetByIdAsync(matchId);
+
+        if (match is null || (match.FarmerId != uid && match.BuyerId != uid))
+        {
+            return NotFound();
+        }
+
+        var mine = (await ratings.FindAsync(r => r.MatchId == matchId && r.RaisedByUserId == uid)).FirstOrDefault();
+        return mine is null ? NoContent() : Ok(new RatingResponse(mine.ThumbsUp, mine.CreatedAt));
     }
 
     private static string OtherParty(MatchDocument match, string uid) =>

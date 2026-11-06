@@ -48,6 +48,12 @@ public class DemandsController : ControllerBase
 
         var results = await query.ToListAsync();
 
+        // Browsing shows other buyers; only the owner's own view keeps exact data.
+        if (!mine)
+        {
+            results = results.Select(BrowsePrivacy.Redact).ToList();
+        }
+
         return Ok(results);
     }
 
@@ -144,6 +150,10 @@ public class DemandsController : ControllerBase
         existing.Location = request.Location;
 
         var updated = await _demands.UpsertAsync(existing);
+
+        var radius = (await _users.GetByIdAsync(uid))?.SearchRadiusKm ?? 10;
+        await _matching.OnDemandCreatedAsync(updated, radius);
+
         return Ok(updated);
     }
 
