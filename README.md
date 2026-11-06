@@ -193,6 +193,7 @@ cd android
 | Languages | English, isiZulu, Afrikaans (see Localisation) |
 | Short description | Match smallholder farmers' produce with nearby buyers. |
 | Signed release APK | Attached to the GitHub Release created at the final tag: [Releases](https://github.com/Kaehil-I/from-the-farm/releases) |
+| Screenshots | [`Documentation/screenshots/`](Documentation/screenshots/): 8 emulator screenshots with sample data, English, isiZulu and Afrikaans |
 
 **Permissions the app declares, and why**
 
