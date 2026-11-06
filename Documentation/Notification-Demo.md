@@ -2,6 +2,8 @@
 
 This is the evidence for the Part 3 notification requirement: a push delivered to a second device when a match is created and when its status changes. Background and troubleshooting are in [Push-Notifications.md](Push-Notifications.md).
 
+> **Evidence status (6 November 2026):** this file is the approved demonstration procedure, not proof that the final signed build completed it. The shared test matrix still marks physical push delivery and notification deep-link opening as not run. Add the device model, Android version, signed-build commit/tag, tester, date and links to the recording/screenshots after the demonstration; then update `Test-Matrix.md` and tick the matching final-release item.
+
 ## What you need
 
 - Two devices with Google Play services: a real phone and a second phone or an emulator. Call them **Farmer device** and **Buyer device**.
@@ -43,6 +45,8 @@ This is the evidence for the Part 3 notification requirement: a push delivered t
 
 - One continuous recording of steps 1 to 4 showing the lock screen notification and the tap opening the match.
 - The Render log lines `Push notifications enabled.` and the deployed commit from `/health`.
+- The physical device model, Android version, app version/tag, tester and test date.
+- A link or repository path to the final recording and screenshots. Do not record personal notifications, tokens, phone numbers or Firebase service-account information.
 - A screenshot of the Actions tab with the latest run green.
 - The notes of which device was which, the build commit and the date.
 

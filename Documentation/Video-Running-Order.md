@@ -2,6 +2,8 @@
 
 One video that covers every point the POE brief lists, in an order that needs only one physical phone plus one second device. The scripts for the notification and offline segments are in [Notification-Demo.md](Notification-Demo.md) and [Offline-Sync-Demo.md](Offline-Sync-Demo.md); this page puts them in one sequence. Target length is 10 to 12 minutes, recorded with a voice-over.
 
+> **Recording status (6 November 2026):** this remains the final-video plan. Before submission, confirm the recording was completed against the signed release commit/tag, upload it, replace or confirm the README video URL, and record the link in `Final-Release-Checklist.md`. The existing README link must not be assumed to be the Part 3 evidence without that confirmation.
+
 ## The brief's checklist and where each item is covered
 
 | Required in the video | Segment |

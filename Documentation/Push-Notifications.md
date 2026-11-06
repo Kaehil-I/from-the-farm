@@ -2,6 +2,8 @@
 
 Part 3 sends a push notification to the other person when a match is created or its status changes. This page covers the behaviour, the configuration and what to check when a notification does not arrive. The step-by-step recording script is in [Notification-Demo.md](Notification-Demo.md).
 
+> **Verification boundary (6 November 2026):** source code, unit tests and CI confirm the notification rules, device-token API and Android handling compile and pass their automated checks. The shared evidence pack does not yet prove FCM delivery from the final deployed API to the final signed APK on a physical phone. Use `Notification-Demo.md` before making that claim.
+
 ## What triggers a notification
 
 | Event | Who is notified | Title (English) | When it fires |

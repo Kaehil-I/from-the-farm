@@ -2,6 +2,8 @@
 
 These notes cover everything added after the Part 2 integration (pull request #8, `Integration-Part2`). They are written from the commit history on `Part-3-Integration` and `kyra-localisation-p3`, and say who did what. They describe what the code does; anything that has not been tested on a device is marked in **Known limitations and verification**.
 
+**Final documentation audit:** 6 November 2026, `Part-3-Integration` at `e2976fa`. At that point there were no open pull requests. The final Android audit passed 65 unit tests, debug assembly and lint with zero errors. The latest code-changing backend CI was green and built the Docker image. This does not replace the open physical-device and signed-release checks in `Test-Matrix.md` and `Final-Release-Checklist.md`.
+
 ## Summary
 
 | Area | Part 2 | Now |
@@ -67,8 +69,8 @@ These notes cover everything added after the Part 2 integration (pull request #8
 - **Translations need a native-speaker review.** The isiZulu and Afrikaans text is a first draft. The push notification wording written by the API has also not been reviewed.
 - **Tested on an emulator with fake data, not with a real account.** The real screens and ViewModel were run in English, isiZulu and Afrikaans as both a Farmer and a Buyer (Home, Listings or Demand, forms, Calendar, Settings, match details, the locked screen) and the language switch from Settings was tested end to end. All 5 of those tests pass. Google sign-in, the real API and a real phone were not used, because sign-in needs the build's signing key to be registered in the Firebase project. Details and the rows still not run are in `Documentation/Test-Matrix.md`.
 - **Confirmation messages vanish quickly.** "Preferences saved." and "Exchange marked completed." were not seen on screen within 3 seconds, most likely because the automatic refresh that follows clears them. This predates the localisation work (Test-Matrix finding F-01).
-- **Physical-device checks.** Push delivery and biometric unlock were checked on a physical phone by Kaehil. The Android notification settings screen has not been.
+- **Physical-device evidence is not yet reconciled.** A previous team note says push delivery and biometric unlock were checked by Kaehil, but the shared `Test-Matrix.md` still records the physical-phone environment and those rows as not run. Until dated screenshots or video and device/build details are added to the matrix, the submission treats those checks as **unverified**, not passed.
 - **Offline scope.** Only creating is queued. Editing and deleting need a connection, and a cold start without a connection cannot load the profile.
 - **Failed-upload error text is still English.** The reason shown on a saved record that failed to upload is written by the upload code (`OutboxProcessor`) and stored with the record, so it is not translated yet. The rest of the offline sync screen is translated.
 - **Photos from before the blob-storage change** keep their inline image until the photo is replaced.
-- **Unit tests only on this branch.** All 65 Android unit tests pass at commit `58ade8f`. The Part 1 preview screens are not wired into the app and remain English.
+- **Final automated audit.** All 65 Android unit tests passed on the final integration content on 6 November 2026; the debug APK assembled and lint completed with zero errors. GitHub Android CI also passed after the unused SampleData screens were removed. These automated results do not prove Google sign-in, the real hosted API, notification delivery, biometric hardware, location permission or offline behaviour on a physical device.

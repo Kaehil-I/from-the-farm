@@ -2,6 +2,17 @@
 
 Work through this top to bottom on submission day. Do not create the tag or mirror to the university repository until every earlier section is ticked and the team has approved the final commit.
 
+## Audit snapshot — 6 November 2026
+
+- Candidate integration commit: `e2976fa`.
+- Open pull requests at audit time: none.
+- Android: 65 unit tests passed, debug APK assembled, lint completed with zero errors; merged cleanup CI is green.
+- Backend: latest code-changing integration CI is green and built the Docker image.
+- Live health: healthy, but Render reported `9aa3150`, not the candidate commit.
+- Release state: no final merge to `main`, final tag, signed release artifacts or completed device evidence yet.
+
+Checked items below mean the repository itself contains supporting evidence. Items that depend on Firebase, Render, Atlas, signing secrets, a physical phone or the university repository remain unchecked until a team member records the result.
+
 ## Decisions to settle first
 
 - [ ] The exact name of the required tag. Git tags cannot contain spaces, so "Final POE" must be written like `Final-POE` or `v1.0.0`. The Release workflow starts on tags beginning with `v` or containing `POE` or `poe`.
@@ -10,8 +21,8 @@ Work through this top to bottom on submission day. Do not create the tag or mirr
 
 ## 1. Freeze the code
 
-- [ ] Every Part 3 pull request is merged into `Part-3-Integration` and has been approved by a teammate. No open PRs remain that should be in the release.
-- [ ] Latest `Part-3-Integration` has green Backend CI and Android CI.
+- [x] Every known Part 3 pull request is merged into `Part-3-Integration`; no open pull requests remained at the 6 November audit. Confirm teammate approvals in GitHub before the final merge.
+- [x] The latest code-changing Backend CI and Android CI runs are green. Later commits through `e2976fa` are documentation/team-credit commits and did not trigger both path-filtered workflows; the final release workflow will rerun both suites.
 - [ ] `https://from-the-farm.onrender.com/api/v1/health` reports the same commit as the tip of the branch.
 - [ ] The Render log shows `Push notifications enabled.`.
 - [ ] `google-services.json` contains the release certificate fingerprint (`7baca34f20742f8e4214f86de6f26c498fd1059b`) and the same hash is registered in Firebase.
@@ -26,15 +37,15 @@ Work through this top to bottom on submission day. Do not create the tag or mirr
 
 ## 3. Documents
 
-- [ ] README is current: setup, architecture, Part 3 features, video link and the test counts.
-- [ ] Release notes cover everything since Part 2.
-- [ ] AI-use write-up with citations.
+- [x] README is current for setup, architecture, Part 3 features, test counts and the audited release status. The final video URL still needs confirmation below.
+- [x] Release notes cover the implemented changes since Part 2 and distinguish automated verification from missing device evidence.
+- [x] AI-use write-up with citations: [AI-Use.md](AI-Use.md).
 - [ ] Demo video recorded and its link is in the README.
 - [ ] Screenshots, signed-build evidence and Play Store assets collected.
 
 ## 4. Hygiene before the freeze
 
-- [ ] Confirm no secret (database connection string, service account key, keystore password) sits in the repository, the README or the documents. If one was ever shared in chat, rotate it and update the matching Render setting, then confirm `/api/v1/health` still reports healthy.
+- [ ] Confirm no secret (database connection string, service account key, keystore password) sits in the repository, README or documents. The 6 November text-source scan found none; a team member must still inspect binary documents and local/download folders. If a secret was ever shared, rotate it and update Render before checking this item.
 - [ ] Delete downloaded copies of the Firebase service account key from Downloads.
 - [ ] The release keystore is backed up somewhere safe and outside the repository. Losing it means updates cannot be signed with the same key.
 - [ ] Nobody is still pushing to branches that matter. Tell the team the freeze time.

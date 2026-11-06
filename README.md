@@ -11,6 +11,8 @@ Part 1's UI-only prototype (mock data, no networking) has been replaced end to e
 
 [Watch the demo](https://youtu.be/6OHo6i-GAxo)
 
+> **Submission note (6 November 2026):** confirm that this URL points to the final Part 3 recording before tagging the submission. The final recording must include the signed build, real Google sign-in and API, language switching, biometrics, notifications and offline synchronisation described in [`Documentation/Video-Running-Order.md`](Documentation/Video-Running-Order.md).
+
 ## Development repository
 
 This repository is the submitted deliverable, with the team's full commit history. Day-to-day development happened on [Kaehil-I/from-the-farm](https://github.com/Kaehil-I/from-the-farm), including this repository's own commit history — pull request reviews, individual GitHub Actions run logs and issue discussion live there rather than transferring with a branch mirror. The live deployment on Render is also connected to that repository.
@@ -20,6 +22,22 @@ This repository is the submitted deliverable, with the team's full commit histor
 - [`Documentation/Release-Notes.md`](Documentation/Release-Notes.md) — what changed since Part 2, by team member.
 - [`Documentation/Test-Matrix.md`](Documentation/Test-Matrix.md) — manual test matrix, regression checklist and translation checklist, with what has and has not been run.
 - [`Documentation/Offline-Sync-Demo.md`](Documentation/Offline-Sync-Demo.md) — steps to demonstrate and verify offline creation and sync.
+- [`Documentation/Push-Notifications.md`](Documentation/Push-Notifications.md) — FCM architecture, configuration, endpoints and troubleshooting.
+- [`Documentation/Notification-Demo.md`](Documentation/Notification-Demo.md) — physical-device push notification demonstration and evidence script.
+- [`Documentation/Video-Running-Order.md`](Documentation/Video-Running-Order.md) — final Part 3 demonstration sequence and evidence plan.
+- [`Documentation/Final-Release-Checklist.md`](Documentation/Final-Release-Checklist.md) — controlled merge, tag, signed-build and university-repository handoff.
+- [`Documentation/AI-Use.md`](Documentation/AI-Use.md) — transparent record of AI assistance, human review and validation boundaries.
+
+## Submission status
+
+The code freeze candidate is `Part-3-Integration` at `e2976fa` (6 November 2026). There were no open pull requests at the final documentation audit.
+
+- **Verified automatically:** 65 Android unit tests pass, the debug APK assembles and Android lint reports zero errors. The latest code-changing Android and backend GitHub Actions runs are green; backend CI also builds the API Docker image.
+- **Live service:** `GET https://from-the-farm.onrender.com/api/v1/health` returned healthy during the audit, but reported deployed commit `9aa3150`. Render must be redeployed or otherwise brought to the final submitted commit before the checklist can be signed off.
+- **Still requires recorded evidence:** the signed release APK on a physical phone, real Google sign-in and API flows, offline create and reconnect, push delivery and deep-link opening, biometric unlock, location permission paths, a real restart preserving language, and the final video.
+- **Release not yet complete:** `Part-3-Integration` still needs the approved merge into protected `main`, the agreed final tag, a green signed Release workflow and a fast-forward mirror to the university repository.
+
+The test matrix deliberately leaves unperformed checks as **Not run** or **Partial**. Passing unit tests and lint do not prove device-only behaviour.
 
 ## How to open
 
@@ -168,7 +186,7 @@ The app is available in **English, isiZulu and Afrikaans**.
 
 - **Backend**: 236 xUnit test cases, run in CI on every push. Every controller except `HealthController` is tested against an in-memory `IMongoRepository` double: ownership, role and validation rules for listings, demands and profiles; the whole match lifecycle (Suggested → Confirmed → Completed with no stage skipped, contact details hidden until confirmed, one rating per user, outsiders get 404); feed generation from both the farmer's and the buyer's side; and the sign-in profile create-or-fetch. Alongside them sit matching and distance calculations, crop/radius/quantity/freshness rules and BSON date serialization. Not covered: `HealthController`, the concrete `MongoRepository`, `MongoIndexes` and `GridFsPhotoStore` (they need a live cluster), and `ClaimsPrincipalExtensions`.
 - **Android**: 65 unit tests (all passing) cover the Retrofit contract, Firebase Bearer headers, validation, crop normalization, buyer recommendations, range filtering, recommendation deduplication, catalogue preservation after nearby searches, session recovery, CRUD operations, match lifecycle, settings, the offline queue and upload logic, and notification rules. Compose UI, biometric, image-picker and device-location flows require emulator or physical-device tests.
-- **Manual**: `Documentation/Test-Matrix.md` records the manual localisation tests and regression checklist, and says what was and was not run. On an emulator, the sign-in screen, the signed-in screens (as a Farmer and a Buyer, using fake data) and the language switch from Settings were checked in English, isiZulu and Afrikaans. Not yet run: Google sign-in with a real account, the real API, and a physical phone (push delivery, the system fingerprint dialog).
+- **Manual**: `Documentation/Test-Matrix.md` records the manual localisation tests and regression checklist, and says what was and was not run. On an emulator, the sign-in screen, signed-in screens using fake data and the language switch from Settings were checked in English, isiZulu and Afrikaans. The repository does not yet contain a complete, reproducible evidence pack for real Google sign-in and API flows, offline sync, physical-phone biometrics and push delivery; those checks remain open until the team adds dated evidence.
 
 Run the complete local checks with:
 
