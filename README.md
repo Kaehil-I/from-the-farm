@@ -9,7 +9,7 @@ Part 1's UI-only prototype (mock data, no networking) has been replaced end to e
 
 ## Video walkthrough
 
-[Watch the demo](https://youtu.be/6OHo6i-GAxo)
+[Watch the final POE demo](https://youtu.be/MoI_sfi8ccc)
 
 ## Development repository
 
