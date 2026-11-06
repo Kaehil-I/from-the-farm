@@ -1,33 +1,38 @@
-# AI use statement
+# AI use statement: From The Farm team
 
-**Group statement.** AI was used as an assistant on this project. A team member reviewed every change before it was pushed. Commits carry the team member's name only, so AI assistance is declared here and not in commit trailers. In text it is cited as (Anthropic, 2026) and listed in the README's References.
+**Summary.** Our team (Zario Di Paolo, Kaehil Indurjeeth, Gregory Luyckfasseel and Kyra Naidoo) used AI tools as assistants while building From The Farm. They did not replace our own work. We decided what to build and checked what the tools produced. Every change reached the shared `Part-3-Integration` branch through a pull request that needs a review, with CI on each. Each of us is responsible for what we submitted.
 
 ## Tool
 
-Claude Sonnet 5.5, used through Claude Code (Anthropic, 2026), in Kyra Naidoo's working session.
+Claude Sonnet 5.5, used through Claude Code (Anthropic, 2026).
 
-## What it was used for: Kyra Naidoo
+## What AI was used for
 
-- **Localisation code.** Moving visible text into Android string resources, switching the app language from the profile's preferred language, and making ViewModel messages and form validation translatable.
-- **Translations.** First drafts of the isiZulu and Afrikaans text. A native speaker has not reviewed them, so treat them as drafts.
-- **Merging and tests.** Resolving the merge conflict with the offline sync screen and translating its text, updating five existing test assertions, and writing a temporary emulator test that checked the screens in all three languages with sample data. That test is not in the repository.
-- **Documentation.** The test matrix, translation checklist, release notes, the Localisation and Store publication readiness sections of the README, and the pull request descriptions.
-- **Diagnosis and review.** Finding why Google sign-in failed on one machine (its signing key is not registered in Firebase), and reading a teammate's pull request (#15) before it was approved from Kyra's account.
+- **Code.** Writing and refactoring Android code: moving screen text into string resources, switching the app language from the profile language, and making error messages and form validation translatable.
+- **Interface design.** Help with the look of the screens and the app's colour scheme.
+- **Translations.** First drafts of the isiZulu and Afrikaans text. A native speaker has not reviewed them.
+- **Merging.** Resolving merge conflicts between members' branches, and translating the text a merge brought in.
+- **Testing.** Writing and updating tests, including a temporary emulator test whose five tests opened the real screens with sample data in English, isiZulu and Afrikaans and checked each expected translated string. It showed that two confirmation messages disappear almost at once, which the test matrix records. That test is not in the repository.
+- **Documentation.** Drafting the test matrix, translation checklist, release notes, README sections, pull request descriptions and this statement.
+- **Diagnosis and review.** Finding why Google sign-in failed on one machine (its signing key was not registered in Firebase), and reading a teammate's pull request before it was approved.
 
-## Other members
+<!-- Team: add here any other AI tool or use that is not covered above, before submitting. -->
 
-This statement covers Kyra Naidoo's use only. Each of the others should add what they used, with the same detail.
+## How we checked AI-assisted work
 
-- Zario Di Paolo: *to be added*
-- Kaehil Indurjeeth: *to be added*
-- Gregory Luyckfasseel: *to be added*
+- The same route as everyone's work: a pull request, a review by another member, and CI.
+- The member who used the tool approved each AI-assisted commit and pull request text before it was pushed.
+- All 65 Android unit tests pass, and the emulator test passed in all three languages.
+- The output needed correcting. A language picker the tool built duplicated the profile setting, so it was removed, and a bug that would have shown an exception's text as a message was caught before merging.
 
-## How the output was checked
+## Limits
 
-- Each commit and pull request text was shown to Kyra and approved before it was pushed.
-- All 65 Android unit tests pass, and the temporary emulator test passed in English, isiZulu and Afrikaans.
-- Not checked: Google sign-in with a real account, the live API, and a physical phone. AI-written code and text can contain mistakes, and the translations still need a native-speaker review.
+- Not checked: Google sign-in with a real account, the live API, and a physical phone.
+- AI output can be wrong, so we treat it as a draft that a person checks.
+- The translations still need a native-speaker review.
 
-## Citation
+## How it is cited
+
+No commit message mentions an AI tool, so use is declared here and not in commit trailers. In the text the tool is cited as (Anthropic, 2026), with a full entry in the README's References.
 
 Anthropic. 2026. *Claude Code* [AI coding assistant, Claude Sonnet 5.5]. Available at: https://claude.com/claude-code (Accessed: 6 November 2026).
