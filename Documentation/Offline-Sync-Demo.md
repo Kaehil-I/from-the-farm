@@ -29,5 +29,5 @@ Steps 1 to 6 show the normal case. The case the design exists for is a connectio
 - Editing and deleting a record need a connection. Only creating is queued.
 - Start the app and sign in while online. A cold start without a connection cannot load the profile, so go offline after the app is open. Records already queued still upload from the background if the app is closed.
 - The pending and failed records are available to the screens through `FarmViewModel.sync`. Whether a "waiting to upload" label is visible depends on the UI work for that state; the message in step 2 and the Atlas counts are the evidence that does not.
-- A listing photo is still stored inline with the record until photos move to object storage, so a queued record with a photo is larger and uploads more slowly on a weak connection.
+- A queued record with a photo sends the (compressed) image with it, so it uploads more slowly on a weak connection. Once it reaches the API the photo goes to blob storage and the listing keeps only a link.
 - If nothing uploads after reconnecting, open the app (it uploads on start and on reconnect), then check the API is awake with the health request.
