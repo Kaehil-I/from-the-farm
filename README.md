@@ -20,6 +20,7 @@ This repository is the submitted deliverable, with the team's full commit histor
 - [`Documentation/Release-Notes.md`](Documentation/Release-Notes.md) — what changed since Part 2, by team member.
 - [`Documentation/Test-Matrix.md`](Documentation/Test-Matrix.md) — manual test matrix, regression checklist and translation checklist, with what has and has not been run.
 - [`Documentation/Offline-Sync-Demo.md`](Documentation/Offline-Sync-Demo.md) — steps to demonstrate and verify offline creation and sync.
+- [`Documentation/AI-Use-Statement.md`](Documentation/AI-Use-Statement.md) — how AI was used on the project and how it was cited.
 
 ## How to open
 
@@ -178,6 +179,32 @@ cd android
 .\gradlew.bat test assembleDebug lintDebug
 ```
 
+## Store publication readiness
+
+| Item | Value |
+| --- | --- |
+| App name | From The Farm |
+| Package name | `com.fromthefarm.app` |
+| Version | Comes from the release tag: `v1.0.0` gives `versionName` 1.0.0, and `versionCode` is the release workflow run number. Local builds default to 0.1 and 1 (`android/app/build.gradle.kts`) |
+| Minimum SDK | 26 (Android 8.0) |
+| Target and compile SDK | 34 (Android 14) |
+| Icon | Green rounded square with a leaf, `android/app/src/main/res/drawable/ic_launcher.xml` |
+| Languages | English, isiZulu, Afrikaans (see Localisation) |
+| Short description | Match smallholder farmers' produce with nearby buyers. |
+| Signed release APK | Built by the Release workflow when the final tag is pushed and attached to the GitHub Release as `FromTheFarm-<version>.apk`, with the app bundle (`.aab`) and `SHA256SUMS.txt`: [Releases](https://github.com/Kaehil-I/from-the-farm/releases) |
+| Screenshots | [`Documentation/screenshots/`](Documentation/screenshots/): 8 emulator screenshots with sample data, English, isiZulu and Afrikaans |
+
+**Permissions the app declares, and why**
+
+| Permission | Used for |
+| --- | --- |
+| `INTERNET`, `ACCESS_NETWORK_STATE` | Calling the API, and detecting when the connection returns so saved records upload. |
+| `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` | The optional **Use my current location** button on listing, demand and nearby-search forms. Coordinates can be typed instead. |
+| `POST_NOTIFICATIONS` | Match notifications on Android 13 and above. It is requested once, after onboarding, and only for people who have notifications switched on. |
+| `USE_BIOMETRIC` | The optional biometric lock on the app. |
+
+The app does not declare a camera or storage permission. A listing photo is chosen with the system photo picker, which needs neither.
+
 ## Deployment and CI
 
 - The API ships as a container and is available at `https://from-the-farm.onrender.com`. Render builds the service from `FromTheFarm.Api/Dockerfile`. Render supports repository Dockerfiles and requires web services to listen on `0.0.0.0` using the assigned `PORT` value (Render, n.d.-a; Render, n.d.-b). The host health check uses the unauthenticated `GET /api/v1/health`, which also returns the short commit hash of the running build, so the live version can be checked against the repository's latest commit with one request.
@@ -217,6 +244,8 @@ Android Developers. n.d.-c. *Save data in a local database using Room*. Availabl
 Android Developers. n.d.-d. *Getting started with WorkManager*. Available at: https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started (Accessed: 5 November 2026).
 
 Android Developers. n.d.-e. *Read network state*. Available at: https://developer.android.com/training/basics/network-ops/reading-network-state (Accessed: 5 November 2026).
+
+Anthropic. 2026. *Claude Code* [AI coding assistant, Claude Sonnet 5.5]. Available at: https://claude.com/claude-code (Accessed: 6 November 2026).
 
 Google Firebase. n.d.-a. *Authenticate with Google on Android*. Available at: https://firebase.google.com/docs/auth/android/google-signin (Accessed: 22 September 2026).
 
