@@ -20,6 +20,7 @@ This repository is the submitted deliverable, with the team's full commit histor
 - [`Documentation/Release-Notes.md`](Documentation/Release-Notes.md) — what changed since Part 2, by team member.
 - [`Documentation/Test-Matrix.md`](Documentation/Test-Matrix.md) — manual test matrix, regression checklist and translation checklist, with what has and has not been run.
 - [`Documentation/Offline-Sync-Demo.md`](Documentation/Offline-Sync-Demo.md) — steps to demonstrate and verify offline creation and sync.
+- [`Documentation/AI-Use-Statement.md`](Documentation/AI-Use-Statement.md) — how AI was used on the project and how it was cited.
 
 ## How to open
 
@@ -241,6 +242,8 @@ Android Developers. n.d.-c. *Save data in a local database using Room*. Availabl
 Android Developers. n.d.-d. *Getting started with WorkManager*. Available at: https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started (Accessed: 5 November 2026).
 
 Android Developers. n.d.-e. *Read network state*. Available at: https://developer.android.com/training/basics/network-ops/reading-network-state (Accessed: 5 November 2026).
+
+Anthropic. 2026. *Claude Code* [AI coding assistant, Claude Sonnet 5.5]. Available at: https://claude.com/claude-code (Accessed: 6 November 2026).
 
 Google Firebase. n.d.-a. *Authenticate with Google on Android*. Available at: https://firebase.google.com/docs/auth/android/google-signin (Accessed: 22 September 2026).
 
