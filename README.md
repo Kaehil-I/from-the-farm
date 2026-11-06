@@ -179,6 +179,31 @@ cd android
 .\gradlew.bat test assembleDebug lintDebug
 ```
 
+## Store publication readiness
+
+| Item | Value |
+| --- | --- |
+| App name | From The Farm |
+| Package name | `com.fromthefarm.app` |
+| Version | `versionName` 0.1, `versionCode` 1 (set in `android/app/build.gradle.kts`) |
+| Minimum SDK | 26 (Android 8.0) |
+| Target and compile SDK | 34 (Android 14) |
+| Icon | Green rounded square with a leaf, `android/app/src/main/res/drawable/ic_launcher.xml` |
+| Languages | English, isiZulu, Afrikaans (see Localisation) |
+| Short description | Match smallholder farmers' produce with nearby buyers. |
+| Signed release APK | Attached to the GitHub Release created at the final tag: [Releases](https://github.com/Kaehil-I/from-the-farm/releases) |
+
+**Permissions the app declares, and why**
+
+| Permission | Used for |
+| --- | --- |
+| `INTERNET`, `ACCESS_NETWORK_STATE` | Calling the API, and detecting when the connection returns so saved records upload. |
+| `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` | The optional **Use my current location** button on listing, demand and nearby-search forms. Coordinates can be typed instead. |
+| `POST_NOTIFICATIONS` | Match notifications on Android 13 and above. It is requested once, after onboarding, and only for people who have notifications switched on. |
+| `USE_BIOMETRIC` | The optional biometric lock on the app. |
+
+The app does not declare a camera or storage permission. A listing photo is chosen with the system photo picker, which needs neither.
+
 ## Deployment and CI
 
 - The API ships as a container and is available at `https://from-the-farm.onrender.com`. Render builds the service from `FromTheFarm.Api/Dockerfile`. Render supports repository Dockerfiles and requires web services to listen on `0.0.0.0` using the assigned `PORT` value (Render, n.d.-a; Render, n.d.-b). The host health check uses the unauthenticated `GET /api/v1/health`, which also returns the short commit hash of the running build, so the live version can be checked against the repository's latest commit with one request.
