@@ -185,13 +185,13 @@ cd android
 | --- | --- |
 | App name | From The Farm |
 | Package name | `com.fromthefarm.app` |
-| Version | `versionName` 0.1, `versionCode` 1 (set in `android/app/build.gradle.kts`) |
+| Version | Comes from the release tag: `v1.0.0` gives `versionName` 1.0.0, and `versionCode` is the release workflow run number. Local builds default to 0.1 and 1 (`android/app/build.gradle.kts`) |
 | Minimum SDK | 26 (Android 8.0) |
 | Target and compile SDK | 34 (Android 14) |
 | Icon | Green rounded square with a leaf, `android/app/src/main/res/drawable/ic_launcher.xml` |
 | Languages | English, isiZulu, Afrikaans (see Localisation) |
 | Short description | Match smallholder farmers' produce with nearby buyers. |
-| Signed release APK | Attached to the GitHub Release created at the final tag: [Releases](https://github.com/Kaehil-I/from-the-farm/releases) |
+| Signed release APK | Built by the Release workflow when the final tag is pushed and attached to the GitHub Release as `FromTheFarm-<version>.apk`, with the app bundle (`.aab`) and `SHA256SUMS.txt`: [Releases](https://github.com/Kaehil-I/from-the-farm/releases) |
 | Screenshots | [`Documentation/screenshots/`](Documentation/screenshots/): 8 emulator screenshots with sample data, English, isiZulu and Afrikaans |
 
 **Permissions the app declares, and why**
