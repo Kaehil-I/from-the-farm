@@ -20,6 +20,11 @@ This repository is the submitted deliverable, with the team's full commit histor
 - [`Documentation/Release-Notes.md`](Documentation/Release-Notes.md) — what changed since Part 2, by team member.
 - [`Documentation/Test-Matrix.md`](Documentation/Test-Matrix.md) — manual test matrix, regression checklist and translation checklist, with what has and has not been run.
 - [`Documentation/Offline-Sync-Demo.md`](Documentation/Offline-Sync-Demo.md) — steps to demonstrate and verify offline creation and sync.
+- [`Documentation/Submission-Pack.md`](Documentation/Submission-Pack.md) — the POE rubric mapped to evidence in this repository, with every link in one place.
+- [`Documentation/Push-Notifications.md`](Documentation/Push-Notifications.md) — how push notifications work, how to configure them and how to troubleshoot them.
+- [`Documentation/Notification-Demo.md`](Documentation/Notification-Demo.md) — two-device script for demonstrating push notifications.
+- [`Documentation/Video-Running-Order.md`](Documentation/Video-Running-Order.md) — the running order of the final demo video.
+- [`Documentation/Final-Release-Checklist.md`](Documentation/Final-Release-Checklist.md) — merge, tag and mirror checklist for the final submission.
 - [`Documentation/AI-Use-Statement.md`](Documentation/AI-Use-Statement.md) — how AI was used on the project and how it was cited.
 
 ## How to open
@@ -169,7 +174,7 @@ The app is available in **English, isiZulu and Afrikaans**.
 
 - **Backend**: 236 xUnit test cases, run in CI on every push. Every controller except `HealthController` is tested against an in-memory `IMongoRepository` double: ownership, role and validation rules for listings, demands and profiles; the whole match lifecycle (Suggested → Confirmed → Completed with no stage skipped, contact details hidden until confirmed, one rating per user, outsiders get 404); feed generation from both the farmer's and the buyer's side; and the sign-in profile create-or-fetch. Alongside them sit matching and distance calculations, crop/radius/quantity/freshness rules and BSON date serialization. Not covered: `HealthController`, the concrete `MongoRepository`, `MongoIndexes` and `GridFsPhotoStore` (they need a live cluster), and `ClaimsPrincipalExtensions`.
 - **Android**: 65 unit tests (all passing) cover the Retrofit contract, Firebase Bearer headers, validation, crop normalization, buyer recommendations, range filtering, recommendation deduplication, catalogue preservation after nearby searches, session recovery, CRUD operations, match lifecycle, settings, the offline queue and upload logic, and notification rules. Compose UI, biometric, image-picker and device-location flows require emulator or physical-device tests.
-- **Manual**: `Documentation/Test-Matrix.md` records the manual localisation tests and regression checklist, and says what was and was not run. On an emulator, the sign-in screen, the signed-in screens (as a Farmer and a Buyer, using fake data) and the language switch from Settings were checked in English, isiZulu and Afrikaans. Not yet run: Google sign-in with a real account, the real API, and a physical phone (push delivery, the system fingerprint dialog).
+- **Manual**: `Documentation/Test-Matrix.md` records the manual localisation tests and regression checklist, and says what was and was not run. On an emulator, the sign-in screen, the signed-in screens (as a Farmer and a Buyer, using fake data) and the language switch from Settings were checked in English, isiZulu and Afrikaans. Push delivery and biometric unlock were checked by hand on a physical phone by Kaehil, and the final demo video records the signed-in flows; the individual rows that were not recorded one by one are marked in the test matrix.
 
 Run the complete local checks with:
 
@@ -191,7 +196,7 @@ cd android
 | Icon | Green rounded square with a leaf, `android/app/src/main/res/drawable/ic_launcher.xml` |
 | Languages | English, isiZulu, Afrikaans (see Localisation) |
 | Short description | Match smallholder farmers' produce with nearby buyers. |
-| Signed release APK | Built by the Release workflow when the final tag is pushed and attached to the GitHub Release as `FromTheFarm-<version>.apk`, with the app bundle (`.aab`) and `SHA256SUMS.txt`: [Releases](https://github.com/Kaehil-I/from-the-farm/releases) |
+| Signed release APK | Built by the Release workflow when the final tag is pushed and attached to the GitHub Release as `FromTheFarm-<version>.apk`, with the app bundle (`.aab`) and `SHA256SUMS.txt`: [Releases](https://github.com/EMKNDN/emkndn-prog7314-2026-prog7314-poe-kaehil-i/releases) in this repository, created from the `Final-POE` tag |
 | Screenshots | [`Documentation/screenshots/`](Documentation/screenshots/): 8 emulator screenshots with sample data, English, isiZulu and Afrikaans |
 
 **Permissions the app declares, and why**
@@ -211,10 +216,12 @@ The app does not declare a camera or storage permission. A listing photo is chos
 - Render redeploys on every push through its GitHub app.
 - The only real production secret is `MongoDb__ConnectionString`, set as an environment variable on the host. Collection indexes are created best-effort at startup, so an unreachable cluster doesn't stop the service from starting.
 - GitHub Actions: **Backend CI** restores, builds, runs the unit tests and builds the Docker image; **Android CI** runs the unit tests, `assembleDebug` and lint. Each workflow only runs when its own folder changes.
+- **Release** (`.github/workflows/release.yml`) runs when a tag containing `POE` (or starting with `v`) is pushed. It runs the backend and Android tests, builds the signed release APK and app bundle with the keystore held in repository secrets, verifies the signature, writes `SHA256SUMS.txt` and publishes them as a GitHub Release. The final commit is tagged `Final-POE`.
+- Listing photos are stored in MongoDB GridFS (blob storage) and served from `/api/v1/photos/{id}`.
 
 ## Known gaps
 
-- Push notifications (Firebase Cloud Messaging) are implemented on both sides: the API registers device tokens and sends a push for new matches and match status changes, and the app registers, asks for the notification permission and opens the right match when a notification is tapped. Delivery on a physical device is not recorded in these docs yet.
+- Push notifications (Firebase Cloud Messaging) are implemented on both sides: the API registers device tokens and sends a push for new matches and match status changes, and the app registers, asks for the notification permission and opens the right match when a notification is tapped. Delivery was checked on a physical phone and is shown in the final demo video; the script is in [`Documentation/Notification-Demo.md`](Documentation/Notification-Demo.md).
 - Offline creation and sync covers new listings and demand requests only. Editing and deleting a record needs a connection (see Offline sync).
 - The isiZulu and Afrikaans translations have not had a native-speaker review (see Localisation), and the signed-in screens have not yet been checked in those languages on a device.
 - Editing a listing can replace its photo but not remove it. Photos are held in MongoDB GridFS blob storage and served from `GET /api/v1/photos/{id}` (public, unguessable ids); listings created before that change keep their old inline image until the photo is replaced.
@@ -229,7 +236,7 @@ The app does not declare a camera or storage permission. A listing photo is chos
 ## Team
 
 - Zario Di Paolo — Android frontend (auth wiring, live screens, navigation, forms, biometric unlock), Unit Testing
-- Kaehil Indurjeeth — backend deployment, Firebase token verification, matching/feed logic, CI/CD, Unit Testing
+- Kaehil Indurjeeth — backend deployment, Firebase token verification, matching/feed logic, CI/CD, Unit Testing; Part 3: push notifications (device tokens, Firebase Cloud Messaging, Android permission and tap-through), creation-time matching and match hardening, listing photo blob storage (GridFS), rating and calendar endpoints, signed release workflow and the final release
 - Gregory Luyckfasseel — listing/demand CRUD ownership, Mongo validation, photo support, profile/settings persistence; Part 3: offline creation and sync (Room storage, outbox queue, duplicate-safe creates, automatic upload, sync state for the screens)
 - Kyra Naidoo — Research Report, unit test drafting, README draft; Part 3: localisation (English, isiZulu, Afrikaans), manual test matrix and translation checklist, README and release notes
 

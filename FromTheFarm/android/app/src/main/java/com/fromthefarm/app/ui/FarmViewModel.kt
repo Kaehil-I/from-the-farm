@@ -131,6 +131,7 @@ class FarmViewModel(private val repository: FarmDataSource,
     fun resumeSession() = action { establishSession() }
     fun signIn(context: Context) = action(allowLocked = true) {
         repository.signIn(context)
+        log("Signed in with Google; establishing session")
         mutable.value = FarmState(busy = true, firebaseSignedIn = true, biometricEnabled = repository.biometricEnabled())
         establishSession()
     }
@@ -138,26 +139,32 @@ class FarmViewModel(private val repository: FarmDataSource,
     fun enableBiometrics() {
         if (!repository.hasSession() || mutable.value.busy || mutable.value.biometricLocked) return
         repository.setBiometricEnabled(true)
+        log("Biometric lock enabled")
         mutable.value = mutable.value.copy(biometricEnabled = true, error = null, message = UiText.Res(R.string.biometric_enabled_msg))
     }
     fun lock() {
-        if (mutable.value.biometricEnabled && repository.hasSession())
+        if (mutable.value.biometricEnabled && repository.hasSession()) {
             mutable.value = mutable.value.copy(biometricLocked = true, error = null, message = null)
+            log("App locked")
+        }
     }
     fun disableBiometrics() {
         if (mutable.value.busy || mutable.value.biometricLocked || !repository.hasSession()) return
         repository.setBiometricEnabled(false)
+        log("Biometric lock disabled")
         mutable.value = mutable.value.copy(biometricEnabled = false, message = UiText.Res(R.string.biometric_disabled_msg))
     }
     fun unlockWithBiometrics() {
         if (!repository.hasSession() || !mutable.value.biometricLocked) return
         mutable.value = mutable.value.copy(biometricLocked = false, error = null, message = UiText.Res(R.string.device_unlocked))
+        log("App unlocked with biometrics")
         if (mutable.value.profile == null) resumeSession()
     }
     fun logout() = action(allowLocked = true) {
         forgetPrivateData(mutable.value.profile?.userId)
         mutable.value = FarmState(busy = true)
         repository.logout()
+        log("Signed out")
     }
     fun saveProfile(body: ProfileUpdate) = action {
         require(body.role in listOf("Farmer", "Buyer") && body.searchRadiusKm in 1..100)
@@ -270,6 +277,7 @@ class FarmViewModel(private val repository: FarmDataSource,
         syncMutable.value = syncMutable.value.copy(syncing = true)
         try {
             val result = processor.drain(owner) { repository.token() }
+            log("Outbox drain finished: ${result.uploaded} uploaded, ${result.outcome}")
             if (result.uploaded > 0) mutable.value = mutable.value.copy(loaded = false,
                 message = if (result.uploaded == 1) UiText.Res(R.string.uploaded_one_record)
                     else UiText.Res(R.string.uploaded_records, listOf(result.uploaded)))
@@ -319,12 +327,14 @@ class FarmViewModel(private val repository: FarmDataSource,
     fun confirm(id: String) = action {
         ensure(mutable.value.detail?.let { it.matchId == id && it.status == "Suggested" } == true, R.string.err_refresh_before_confirm)
         repository.api.confirm(repository.token(), id)
+        log("Match confirmed")
         mutable.value = mutable.value.copy(detail = mutable.value.detail?.copy(status = "Confirmed"), loaded = false)
         mutable.value = mutable.value.copy(detail = repository.api.detail(repository.token(), id), loaded = false)
     }
     fun complete(id: String) = action {
         ensure(mutable.value.detail?.let { it.matchId == id && it.status == "Confirmed" } == true, R.string.err_only_confirmed_complete)
         repository.api.complete(repository.token(), id)
+        log("Match marked completed")
         // The write succeeded even if the following detail refresh fails.
         mutable.value = mutable.value.copy(detail = mutable.value.detail?.copy(status = "Completed"),
             loaded = false, message = UiText.Res(R.string.exchange_completed))
@@ -334,6 +344,7 @@ class FarmViewModel(private val repository: FarmDataSource,
         ensure(mutable.value.detail?.let { it.matchId == id && it.status == "Completed" } == true, R.string.err_only_completed_rate)
         ensure(id !in mutable.value.ratedMatches, R.string.err_already_rated)
         repository.api.rate(repository.token(), id, RatingWrite(positive))
+        log("Rating submitted")
         mutable.value = mutable.value.copy(message = UiText.Res(R.string.rating_submitted), ratedMatches = mutable.value.ratedMatches + id)
     }
 }

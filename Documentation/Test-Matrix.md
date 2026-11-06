@@ -8,7 +8,7 @@ This is the manual test record for the Part 3 localisation work and the regressi
 | --- | --- | --- |
 | E1 | Android Studio emulator `Medium_Phone` (API level 37, 4 GB RAM), build from branch `kyra-localisation-p3` | Localisation checks that do not need a signed-in user |
 | E1b | Same emulator and build, with the real screens and the real ViewModel running inside a throwaway test screen that uses fake data (no Google sign-in) | The signed-in screens: Farmer and Buyer Home, Listings or Demand, forms, Calendar, Settings, match details, the locked screen and language switching, in English, isiZulu and Afrikaans. Run on 5 November 2026 with a temporary instrumented test (not in the repository) that checks each expected translated string is on screen and saves screenshots. The 5 tests pass |
-| E2 | Physical phone, signed release build | **Not available yet.** Needed for the notification, biometric dialog and real-account rows |
+| E2 | Physical phone | Push delivery and biometric unlock were checked by hand by Kaehil (they work). The final demo video records the signed-in flows. The individual real-account rows below were not recorded one by one, so they stay marked as they were |
 | CI | `gradlew test` on the developer machine and in Android CI | Unit tests |
 
 **Status legend:** Pass, Partial (some of the row was checked, the rest says what was not), Not run (with the reason), Finding (a problem or oddity worth acting on).
@@ -125,7 +125,7 @@ The group counts add up to 209 strings plus the 2 notification channel strings. 
 ## F. Gaps in coverage
 
 - The real-account rows still need a registered signing key (or a teammate's build): R-02 to R-04, R-07, R-10, R-13, R-14 and L-05 with a real process kill.
-- The system biometric dialog, push delivery and the Android notification settings screen need a physical phone (E2).
+- The system biometric dialog and push delivery were checked by hand on a physical phone (E2) but not recorded row by row. The Android notification settings screen was not checked.
 - The tests ran on an API 37 emulator only. Android 8 to 12 (API 26 to 32), where AppCompat stores the language itself, were not run.
 - The E1b test code is not in the repository. It is a throwaway harness kept outside it, so these results can be reproduced only by rebuilding that harness. The screenshots from the run are also not in the repository.
 - Right-to-left and other scripts are out of scope (English, isiZulu and Afrikaans are all left-to-right).

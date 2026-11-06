@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.util.Log
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -18,6 +19,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import java.util.concurrent.TimeUnit
+
+private const val SYNC_TAG = "SyncWorker"
 
 /** Asks the system to upload the queue once the phone has a connection, even if the app is closed. */
 interface SyncScheduler { fun schedule() }
@@ -39,11 +42,13 @@ class WorkSyncScheduler(private val context: Context) : SyncScheduler {
 
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
+        Log.i(SYNC_TAG, "Background sync started")
         val repository = FarmRepository(applicationContext)
         if (!repository.hasSession()) return Result.success()      // queued work waits for the next sign-in
         val owner = repository.currentUserId() ?: return Result.success()
         val store = RoomOfflineStore(FarmDatabase.get(applicationContext).dao())
         val result = OutboxProcessor(store, repository.api).drain(owner) { repository.token() }
+        Log.i(SYNC_TAG, "Background sync finished: ${result.uploaded} uploaded, ${result.outcome}")
         return when (result.outcome) {
             DrainOutcome.DONE, DrainOutcome.NEEDS_SIGN_IN -> Result.success()
             DrainOutcome.RETRY_LATER -> Result.retry()
